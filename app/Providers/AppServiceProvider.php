@@ -36,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
             'cors' => [
                 'paths' => ['api/*', 'sanctum/csrf-cookie'],
                 'allowed_methods' => ['*'],
-                'allowed_origins' => ['*'],
+                'allowed_origins' => ['*'],// should need to avoid in production
                 //'http://primeproperty.test',
                 //'http://192.168.1.6:8081',
                 //'exp://192.168.1.6:8081',

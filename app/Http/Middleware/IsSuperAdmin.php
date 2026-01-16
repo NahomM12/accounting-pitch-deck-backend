@@ -17,10 +17,14 @@ class IsSuperAdmin
      */
     public function handle(Request $request, Closure $next)
     {
-        if (Auth::check() && Auth::user()->role == 'superadmin') {
+        if (! Auth::check()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        if (Auth::user()->role === 'superadmin') {
             return $next($request);
         }
 
-        return response()->json(['error' => 'Unauthorized'], 403);
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 }
