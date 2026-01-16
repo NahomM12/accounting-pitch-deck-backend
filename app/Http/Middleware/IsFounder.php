@@ -21,6 +21,6 @@ class IsFounder
             return $next($request);
         }
 
-        return response()->json(['error' => 'Unauthorized'], 403);
+        return response()->json(['error' => 'Forbidden'], 403);
     }
 }
