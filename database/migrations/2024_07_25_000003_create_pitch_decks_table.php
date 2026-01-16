@@ -14,12 +14,12 @@ return new class extends Migration
         Schema::create('pitch_decks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('company_name');
+            $table->string('company_name')->nullable();
             $table->string('industry');
-            $table->string('funding_stage');
-            $table->decimal('funding_amount', 15, 2);
-            $table->text('description');
-            $table->string('file_path');
+            $table->string('funding_stage')->nullable();
+            $table->decimal('funding_amount', 15, 2)->nullable();
+            $table->text('description')->nullable();
+            $table->string('file_path')->nullable();
             $table->string('status')->default('pending');
             $table->timestamps();
         });
