@@ -9,24 +9,41 @@ class PitchDeck extends Model
 {
     use HasFactory;
 
+    /**
+     * The table associated with the model.
+     *
+     * @var string
+     */
+    protected $table = 'pitch_decks';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
     protected $fillable = [
-        'user_id',
-        'company_name',
-        'industry',
-        'funding_stage',
-        'funding_amount',
-        'description',
+        'founder_id',
+        'title',
         'file_path',
+        'file_type',
+        'thumbnail_path',
         'status',
+        'uploaded_by',
     ];
 
-    public function user()
+    /**
+     * Get the founder that owns the pitch deck.
+     */
+    public function founder()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Founder::class);
     }
 
-    public function reviews()
+    /**
+     * Get the user that uploaded the pitch deck.
+     */
+    public function uploader()
     {
-        return $this->hasMany(AdminReview::class);
+        return $this->belongsTo(User::class, 'uploaded_by');
     }
 }

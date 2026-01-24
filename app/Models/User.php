@@ -29,7 +29,6 @@ class User extends Authenticatable
      const ROLES = [
         'admin' => 'Admin',
         'superadmin'=> 'Super Admin',
-        'founders'=>'Founders',
         'investors'=>'Investors',
      ];
 
@@ -54,10 +53,5 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    public function pitchDeck()
-    {
-        return $this->hasOne(PitchDeck::class);
     }
 }

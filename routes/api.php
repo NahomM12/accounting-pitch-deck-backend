@@ -14,5 +14,3 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('users', UserController::class);
 
 Route::post('/admin/register', [RegistrationController::class, 'adminRegister'])->middleware(['auth:sanctum', 'admin']);
-Route::post('/founder/complete-pitch-deck', [RegistrationController::class, 'founderCompletePitchDeck'])->middleware(['auth:sanctum', 'isfounder']);
-

@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\IsAdmin;
 use App\Http\Middleware\IsSuperAdmin;
-use App\Http\Middleware\IsFounder;
 use App\Http\Middleware\IsInvestor;
 
 class AppServiceProvider extends ServiceProvider
@@ -29,7 +28,6 @@ class AppServiceProvider extends ServiceProvider
         //
         Route::aliasMiddleware('admin', IsAdmin::class);
         Route::aliasMiddleware('superadmin', IsSuperAdmin::class);
-        Route::aliasMiddleware('isfounder', IsFounder::class);
         Route::aliasMiddleware('isinvestor', IsInvestor::class);
        
         config([

@@ -19,7 +19,7 @@ class AdminReview extends Model
 
     public function pitchDeck()
     {
-        return $this->belongsTo(PitchDeck::class);
+        return $this->belongsTo(Founders::class);
     }
 
     public function admin()
