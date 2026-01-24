@@ -17,10 +17,10 @@ class AdminReview extends Model
         'reviewed_at',
     ];
 
-    public function pitchDeck()
-    {
-        return $this->belongsTo(Founders::class);
-    }
+    // public function pitchDeck()
+    // {
+    //     return $this->belongsTo(Founders::class);
+    // }
 
     public function admin()
     {
