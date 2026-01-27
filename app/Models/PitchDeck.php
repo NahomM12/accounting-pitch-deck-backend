@@ -36,7 +36,7 @@ class PitchDeck extends Model
      */
     public function founder()
     {
-        return $this->belongsTo(Founder::class);
+        return $this->belongsTo(Founders::class);
     }
 
     /**

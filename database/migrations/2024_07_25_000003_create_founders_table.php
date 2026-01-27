@@ -13,10 +13,9 @@ return new class extends Migration
 {
     Schema::create('founders', function (Blueprint $table) {
         $table->id();
-       // $table->foreignId('user_id')->constrained()->onDelete('cascade');
         $table->string('company_name')->nullable();
         $table->string('sector')->nullable(); // Changed from 'industry' to 'sector'
-        $table->string('location')->nullable(); // New field
+        $table->enum('location',['addis ababa', 'diredawa', 'hawassa','bahirdar','gondar','mekele'])->nullable(); // New field
         $table->enum('funding_stage', [
             'pre-seed', 
             'seed', 

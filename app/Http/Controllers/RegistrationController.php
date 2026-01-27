@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Founders;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -75,5 +76,31 @@ class RegistrationController extends Controller
         ]);
 
         return response()->json($user, 201);
+    }
+
+    /**
+     * Admin creates a new founder profile.
+     */
+    public function createFounderProfile(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'company_name' => 'required|string|max:255',
+            'sector' => 'required|string|max:255',
+            'location' => 'required|string|in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele',
+            'funding_stage' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
+            'valuation' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
+            'years_of_establishment' => 'required|string|max:255',
+            'funding_amount' => 'required|numeric',
+            'description' => 'required|string',
+            'number_of_employees' => 'required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $founder = Founders::create($request->all());
+
+        return response()->json($founder, 201);
     }
 }

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('title');
             $table->string('file_path');
             $table->enum('file_type', ['pdf', 'ppt', 'pptx']);
-            $table->string('thumbnail_path');
+            $table->string('thumbnail_path')->nullable();
             $table->enum('status', ['draft', 'published', 'archived']);
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
