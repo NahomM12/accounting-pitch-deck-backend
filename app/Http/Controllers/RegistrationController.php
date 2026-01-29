@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\PersonalAccessToken;
+use Illuminate\Support\Facades\Log;
 
 class RegistrationController extends Controller
 {
@@ -47,7 +48,10 @@ class RegistrationController extends Controller
     public function adminRegister(Request $request)
     {
         $registrar = $request->user();
-
+      Log::info('Registrar role: ' . $registrar->role);
+     Log::info('Registrar ID: ' . $registrar->id);
+     Log::info('Request role: ' . $request->input('role'));
+     log::debug('registrar role: ' . $registrar->role);
         // Only superadmins can register admins
         if ($request->input('role') === 'admin' && $registrar->role !== 'superadmin') {
             return response()->json(['error' => 'Only superadmins can register new admins.'], 403);
@@ -90,7 +94,7 @@ class RegistrationController extends Controller
             'sector' => 'required|string|max:255',
             'location' => 'required|string|in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele',
             'funding_stage' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
-            'valuation' => 'required|numeric|min:0',
+            'valuation' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
             'years_of_establishment' => 'required|integer|min:1900|max:' . date('Y'),
             'funding_amount' => 'required|numeric',
             'description' => 'required|string|max:10000',

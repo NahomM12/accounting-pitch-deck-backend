@@ -14,8 +14,8 @@ Route::get('/user', function (Request $request) {
 
 Route::apiResource('users', UserController::class);
 
-Route::post('/admin/register', [RegistrationController::class, 'adminRegister'])->middleware(['auth:sanctum', 'admin']);
-Route::post('/founder/create-profile', [RegistrationController::class, 'createFounderProfile'])->middleware(['auth:sanctum', 'admin']);
+Route::post('/admin/register', [RegistrationController::class, 'adminRegister'])->middleware(['auth:sanctum', 'superadmin']);
+Route::post('/founder/create-profile', [RegistrationController::class, 'createFounderProfile'])->middleware(['auth:sanctum', 'superadmin']);
 
 // Pitch Deck Routes
 Route::get('/pitch-decks', [PitchDeckController::class, 'index'])->middleware('auth:sanctum');
@@ -23,7 +23,7 @@ Route::get('/pitch-decks/{id}', [PitchDeckController::class, 'show'])->middlewar
 //Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);
 Route::get('/pitch-decks/{id}/download', [PitchDeckController::class, 'download'])->middleware(['auth:sanctum', 'isinvestor']);
 
-Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+Route::middleware(['auth:sanctum', 'superadmin'])->group(function () {
     Route::post('/pitch-decks', [PitchDeckController::class, 'store']);
     Route::put('/pitch-decks/{id}', [PitchDeckController::class, 'update']);
     Route::delete('/pitch-decks/{id}', [PitchDeckController::class, 'destroy']);

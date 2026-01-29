@@ -46,4 +46,17 @@ class PitchDeck extends Model
     {
         return $this->belongsTo(User::class, 'uploaded_by');
     }
+    public function downloads()
+    {
+        return $this->hasMany(PitchDeckDownload::class);
+    }
+    // public function users()
+    // {
+    //     return $this->belongsToMany(User::class, 'pitch_deck_downloads', 'pitch_deck_id', 'user_id')
+    //                 ->withTimestamps();
+    // }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

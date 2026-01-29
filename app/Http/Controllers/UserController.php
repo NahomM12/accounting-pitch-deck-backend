@@ -16,7 +16,8 @@ class UserController extends Controller
      */
     public function index()
     {
-        return response()->json(User::with('pitchDeck')->get());
+        // return response()->json(User::with('pitchDeck')->get());
+         return response()->json(User::all());
     }
 
     /**
