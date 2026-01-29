@@ -36,10 +36,19 @@ class PitchDeckController extends Controller
         }
 
         $file = $request->file('file');
-        $filePath = $file->store('pitch_decks', 'public');
+        // Store on a non-public disk (use 'local' or a configured private disk) so files aren't directly web-accessible.
+        $filePath = $file->store('pitch_decks', 'local');
 
         $pitchDeck = PitchDeck::create([
-            'founder_id' => $request->founder_id,
+            'founder_id' => $reques            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
+            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);t->founder_id,
             'title' => $request->title,
             'file_path' => $filePath,
             'file_type' => $file->extension(),
@@ -66,7 +75,7 @@ class PitchDeckController extends Controller
     public function update(Request $request, $id)
     {
         $pitchDeck = PitchDeck::findOrFail($id);
-
+          $this->authorize('update', $pitchDeck);
         $validator = Validator::make($request->all(), [
             'title' => 'sometimes|required|string|max:255',
             'status' => 'sometimes|required|string|in:draft,published,archived',
@@ -87,6 +96,8 @@ class PitchDeckController extends Controller
     public function destroy($id)
     {
         $pitchDeck = PitchDeck::findOrFail($id);
+        $this->authorize('delete', $pitchDeck);
+
         Storage::disk('public')->delete($pitchDeck->file_path);
         $pitchDeck->delete();
 
@@ -96,6 +107,12 @@ class PitchDeckController extends Controller
     /**
      * Download the specified pitch deck.
      */
+    public function download(Request $request, $id)
+    {
+        // Require an authenticated user for downloads
+        if (!$request->user()) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
     public function download(Request $request, $id)
     {
         $pitchDeck = PitchDeck::where('status', 'published')->findOrFail($id);
@@ -108,6 +125,7 @@ class PitchDeckController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return Storage::disk('public')->download($pitchDeck->file_path, $pitchDeck->title . '.' . $pitchDeck->file_type);
+        $safeTitle = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $pitchDeck->title);
+        return Storage::disk('public')->download($pitchDeck->file_path, $safeTitle . '.' . $pitchDeck->file_type);
     }
 }

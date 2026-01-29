@@ -18,9 +18,9 @@ Route::post('/admin/register', [RegistrationController::class, 'adminRegister'])
 Route::post('/founder/create-profile', [RegistrationController::class, 'createFounderProfile'])->middleware(['auth:sanctum', 'admin']);
 
 // Pitch Deck Routes
-Route::get('/pitch-decks', [PitchDeckController::class, 'index']);
-Route::get('/pitch-decks/{id}', [PitchDeckController::class, 'show']);
-
+Route::get('/pitch-decks', [PitchDeckController::class, 'index'])->middleware('auth:sanctum');
+Route::get('/pitch-decks/{id}', [PitchDeckController::class, 'show'])->middleware('auth:sanctum');
+//Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);
 Route::get('/pitch-decks/{id}/download', [PitchDeckController::class, 'download'])->middleware(['auth:sanctum', 'isinvestor']);
 
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {

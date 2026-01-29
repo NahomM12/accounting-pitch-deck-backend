@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class RegistrationController extends Controller
 {
@@ -83,13 +84,17 @@ class RegistrationController extends Controller
      */
     public function createFounderProfile(Request $request)
     {
+        //make sure the user is admin or superadmin and have middleware 'admin' is applied in route
         $validator = Validator::make($request->all(), [
             'company_name' => 'required|string|max:255',
             'sector' => 'required|string|max:255',
             'location' => 'required|string|in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele',
             'funding_stage' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
-            'valuation' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
-            'years_of_establishment' => 'required|string|max:255',
+            'valuation' => 'required|numeric|min:0',
+            'years_of_establishment' => 'required|integer|min:1900|max:' . date('Y'),
+            'funding_amount' => 'required|numeric',
+            'description' => 'required|string|max:10000',
+            'number_of_employees' => 'required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
             'funding_amount' => 'required|numeric',
             'description' => 'required|string',
             'number_of_employees' => 'required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
@@ -99,7 +104,7 @@ class RegistrationController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
-        $founder = Founders::create($request->all());
+         $founder = Founders::create($validator->validated());
 
         return response()->json($founder, 201);
     }
