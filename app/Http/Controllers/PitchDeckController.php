@@ -113,6 +113,7 @@ class PitchDeckController extends Controller
         if (!$request->user()) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
+    }
     public function download(Request $request, $id)
     {
         $pitchDeck = PitchDeck::where('status', 'published')->findOrFail($id);
