@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PitchDeck;
 use App\Models\PitchDeckDownload;
+use App\Models\AdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -92,6 +93,16 @@ public function store(Request $request)
             'status' => 'draft',
             'uploaded_by' => $user->id,
         ]);
+        // Log admin activity for adding a pitch deck
+        try {
+            $this->logAdminActivity($request, 'add_pitchdeck', 'PitchDeck', $pitchDeck->id, [
+                'title' => $pitchDeck->title,
+                'founder_id' => $pitchDeck->founder_id,
+                'file_path' => $pitchDeck->file_path,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity: ' . $e->getMessage());
+        }
         
         // Generate full URL
         $fileUrl = asset('storage/' . $filePath);
@@ -140,6 +151,13 @@ public function store(Request $request)
         }
 
         $pitchDeck->update($request->only('title', 'status'));
+
+        // Log admin activity for editing a pitch deck
+        try {
+            $this->logAdminActivity($request, 'edit_pitchdeck', 'PitchDeck', $pitchDeck->id, $request->only('title', 'status'));
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity: ' . $e->getMessage());
+        }
 
         return response()->json($pitchDeck);
     }
@@ -203,6 +221,17 @@ public function changeStatusByAdmin(Request $request, $id)
         'notes' => $request->input('notes', '')
     ]);
 
+    // Persist admin activity
+    try {
+        $this->logAdminActivity($request, 'change_status', 'PitchDeck', $pitchDeck->id, [
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'notes' => $request->input('notes', ''),
+        ]);
+    } catch (\Throwable $e) {
+        \Log::warning('Failed to log admin activity: ' . $e->getMessage());
+    }
+
     return response()->json([
         'message' => 'Pitch deck status updated successfully',
         'pitch_deck' => $pitchDeck,
@@ -217,15 +246,45 @@ public function changeStatusByAdmin(Request $request, $id)
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         $pitchDeck = PitchDeck::findOrFail($id);
         $this->authorize('delete', $pitchDeck);
+
+        // Log admin activity for deleting a pitch deck (before delete so we capture data)
+        try {
+            $this->logAdminActivity($request, 'delete_pitchdeck', 'PitchDeck', $pitchDeck->id, [
+                'title' => $pitchDeck->title,
+                'file_path' => $pitchDeck->file_path,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity: ' . $e->getMessage());
+        }
 
         Storage::disk('public')->delete($pitchDeck->file_path);
         $pitchDeck->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Helper to persist admin activity logs.
+     */
+    protected function logAdminActivity(Request $request, string $action, ?string $subjectType = null, $subjectId = null, array $data = [])
+    {
+        $user = $request->user() ?? auth()->user();
+        if (! $user) {
+            return;
+        }
+
+        AdminActivity::create([
+            'admin_user_id' => $user->id,
+            'action' => $action,
+            'subject_type' => $subjectType,
+            'subject_id' => $subjectId,
+            'data' => $data ?: null,
+            'ip_address' => $request->ip(),
+        ]);
     }
 
     /**
