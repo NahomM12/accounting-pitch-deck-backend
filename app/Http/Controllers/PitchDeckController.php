@@ -7,6 +7,9 @@ use App\Models\PitchDeckDownload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class PitchDeckController extends Controller
 {
@@ -23,8 +26,21 @@ class PitchDeckController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
-    {
+
+
+public function store(Request $request)
+{
+     \Log::info('=== FILE UPLOAD DEBUG ===');
+    
+    // Check what's in the request
+    \Log::info('All request data:', $request->all());
+    \Log::info('Has file in request: ' . ($request->hasFile('file') ? 'YES' : 'NO'));
+    \Log::info('All files in request:', $request->allFiles());
+    \Log::info('Request headers:', $request->headers->all());
+    try {
+        // Get authenticated user
+        $user = auth()->user();
+
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'founder_id' => 'required|exists:founders,id',
@@ -35,30 +51,68 @@ class PitchDeckController extends Controller
             return response()->json($validator->errors(), 422);
         }
 
+         // Get the uploaded file
         $file = $request->file('file');
-        // Store on a non-public disk (use 'local' or a configured private disk) so files aren't directly web-accessible.
-        $filePath = $file->store('pitch_decks', 'local');
-
+        \Log::info('File object:', [
+            'original_name' => $file->getClientOriginalName(),
+            'size' => $file->getSize(),
+            'mime_type' => $file->getMimeType(),
+            'extension' => $file->getClientOriginalExtension(),
+            'is_valid' => $file->isValid()
+        ]);
+        
+        // Get the file extension
+        $extension = strtolower($file->getClientOriginalExtension());
+        
+        // Validate extension matches allowed types
+        if (!in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+            return response()->json([
+                'file' => ['Invalid file type. Only PDF, PPT, and PPTX files are allowed.']
+            ], 422);
+        }
+        
+        // Generate a unique filename
+        $originalName = $file->getClientOriginalName();
+        $fileName = time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension;
+        
+        // Store the file - using 'public' disk for web access
+        $filePath = $file->storeAs('pitch_decks', $fileName, 'public');
+        
+        if (!$filePath) {
+            throw new \Exception('Failed to store file');
+        }
+        
+        // Create the pitch deck record
         $pitchDeck = PitchDeck::create([
-            'founder_id' => $reques            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);            <?php
-            Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);t->founder_id,
+            'founder_id' => $request->founder_id,
             'title' => $request->title,
             'file_path' => $filePath,
-            'file_type' => $file->extension(),
-            'status' => 'draft', // Always starts as a draft
-            'uploaded_by' => $request->user()->id,
-            'thumbnail_path' => '', // Placeholder, can be generated later
+            'file_type' => $extension,
+            'thumbnail_path' => null,
+            'status' => 'draft',
+            'uploaded_by' => $user->id,
         ]);
-
-        return response()->json($pitchDeck, 201);
+        
+        // Generate full URL
+        $fileUrl = asset('storage/' . $filePath);
+        
+        return response()->json([
+            'message' => 'Pitch deck uploaded successfully',
+            'pitch_deck' => $pitchDeck,
+            'file_url' => $fileUrl
+        ], 201);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in PitchDeckController@store', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        return response()->json([
+            'error' => 'Internal server error',
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * Display the specified resource.
@@ -107,15 +161,12 @@ class PitchDeckController extends Controller
     /**
      * Download the specified pitch deck.
      */
+   
     public function download(Request $request, $id)
     {
-        // Require an authenticated user for downloads
-        if (!$request->user()) {
+         if (!$request->user()) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
-    }
-    public function download(Request $request, $id)
-    {
         $pitchDeck = PitchDeck::where('status', 'published')->findOrFail($id);
 
         // Log the download
@@ -129,4 +180,17 @@ class PitchDeckController extends Controller
         $safeTitle = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $pitchDeck->title);
         return Storage::disk('public')->download($pitchDeck->file_path, $safeTitle . '.' . $pitchDeck->file_type);
     }
+    public function testAuth(Request $request)
+{
+    \Log::info('=== TEST AUTH ENDPOINT ===');
+    \Log::info('Headers:', $request->headers->all());
+    \Log::info('Auth check: ' . (auth()->check() ? 'TRUE' : 'FALSE'));
+    \Log::info('User: ' . (auth()->user() ? auth()->user()->id : 'NULL'));
+    
+    return response()->json([
+        'authenticated' => auth()->check(),
+        'user_id' => auth()->check() ? auth()->id() : null,
+        'token' => $request->bearerToken(),
+    ]);
+}
 }
