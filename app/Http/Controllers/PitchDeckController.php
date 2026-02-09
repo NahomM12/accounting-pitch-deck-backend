@@ -145,6 +145,76 @@ public function store(Request $request)
     }
 
     /**
+     * Change the status of a pitch deck (admin only).
+     */
+    /**
+ * Change the status of a pitch deck (admin only).
+ * Admin can change from draft→published, published→archived, etc.
+ */
+public function changeStatusByAdmin(Request $request, $id)
+{
+    // Check if user is admin or superadmin
+    $user = $request->user();
+    
+    if (!$user) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
+    
+    // Check user role - adjust based on your User model
+    $allowedRoles = ['admin', 'superadmin'];
+    if (!in_array($user->role, $allowedRoles)) {
+        return response()->json([
+            'message' => 'Forbidden. Only admins and superadmins can change pitch deck status.',
+            'user_role' => $user->role
+        ], 403);
+    }
+    
+    $validator = Validator::make($request->all(), [
+        'status' => 'required|string|in:draft,published,archived',
+        'notes' => 'nullable|string|max:1000', // Optional admin notes
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json($validator->errors(), 422);
+    }
+
+    $pitchDeck = PitchDeck::findOrFail($id);
+    
+    // Log the status change
+    $oldStatus = $pitchDeck->status;
+    $newStatus = $request->input('status');
+    
+    // Update the pitch deck
+    $pitchDeck->update([
+        'status' => $newStatus,
+        // If you want to track who changed the status and when:
+        // 'status_changed_by' => $user->id,
+        // 'status_changed_at' => now(),
+    ]);
+    
+    // Log the action
+    \Log::info('Pitch deck status changed', [
+        'pitch_deck_id' => $pitchDeck->id,
+        'title' => $pitchDeck->title,
+        'old_status' => $oldStatus,
+        'new_status' => $newStatus,
+        'changed_by' => $user->id,
+        'changed_by_email' => $user->email,
+        'notes' => $request->input('notes', '')
+    ]);
+
+    return response()->json([
+        'message' => 'Pitch deck status updated successfully',
+        'pitch_deck' => $pitchDeck,
+        'changes' => [
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'changed_by' => $user->email
+        ]
+    ]);
+}
+
+    /**
      * Remove the specified resource from storage.
      */
     public function destroy($id)

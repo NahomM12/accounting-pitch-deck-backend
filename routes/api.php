@@ -33,6 +33,9 @@ Route::middleware(['auth:sanctum', 'superadmin'])->group(function () {
     Route::delete('/pitch-decks/{id}', [PitchDeckController::class, 'destroy']);
 });
 
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::put('/pitch-decks/{id}/status', [PitchDeckController::class, 'changeStatusByAdmin']);
+});
 // In routes/api.php - Add this test route
 Route::middleware('auth:sanctum')->get('/debug-auth', function (Request $request) {
     \Log::info('=== DEBUG AUTH ROUTE CALLED ===');
