@@ -4,6 +4,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\FounderController;
 use App\Http\Controllers\PitchDeckController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\ThumbnailController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -68,3 +69,19 @@ Route::middleware('auth:sanctum')->get('/debug-auth', function (Request $request
 });
 
 Route::post('/pitch-decks/test-auth', [PitchDeckController::class, 'testAuth'])->middleware('auth:sanctum');
+
+
+// Thumbnail management routes
+Route::middleware('auth:sanctum')->group(function () {
+    // Get thumbnail info
+    Route::get('/pitch-decks/{pitchDeck}/thumbnail', [ThumbnailController::class, 'show']);
+    
+    // Upload thumbnail
+    Route::post('/pitch-decks/{pitchDeck}/thumbnail', [ThumbnailController::class, 'upload']);
+    
+    // Delete thumbnail
+    Route::delete('/pitch-decks/{pitchDeck}/thumbnail', [ThumbnailController::class, 'delete']);
+    
+    // Admin-only bulk conversion
+    Route::middleware('admin')->post('/thumbnails/bulk-convert', [ThumbnailController::class, 'bulkConvert']);
+});
