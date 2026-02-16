@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Intervention\Image\Facades\Image;
 
 class PitchDeckController extends Controller
 {
@@ -93,6 +94,24 @@ public function store(Request $request)
             'status' => 'draft',
             'uploaded_by' => $user->id,
         ]);
+                // Generate thumbnail if it's a PDF
+        try {
+            if (in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+                $originalPath = Storage::disk('public')->path($filePath);
+                $image = Image::make($originalPath . '[0]');
+                $image->resize(300, 200, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+                $thumbnailFileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '.webp';
+                $thumbnailPath = 'pitch_decks/thumbnails/' . $thumbnailFileName;
+                Storage::disk('public')->put($thumbnailPath, $image->encode('webp', 85));
+                $pitchDeck->thumbnail_path = $thumbnailPath;
+                $pitchDeck->save();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to generate thumbnail from first page: ' . $e->getMessage());
+        }
         // Log admin activity for adding a pitch deck
         try {
             $this->logAdminActivity($request, 'add_pitchdeck', 'PitchDeck', $pitchDeck->id, [

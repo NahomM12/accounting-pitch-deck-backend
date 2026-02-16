@@ -25,12 +25,12 @@ return new class extends Migration
             'IPO'
         ])->nullable();
         $table->enum('valuation', [
-            'pre-seed', 
-            'seed', 
-            'series A', 
-            'series B', 
-            'series C', 
-            'IPO'
+            'pre seed under 1M$', 
+            'seed 1M$ - 5M$', 
+            'series A 5M$ - 10M$', 
+            'series B 10M$ - 50M$', 
+            'series C 50M$ - 100M$', 
+            'IPO 100M$+'
         ])->nullable(); // New field
         $table->string('years_of_establishment')->nullable(); // Renamed from 'years of establishment'
         $table->decimal('funding_amount', 15, 2)->nullable();
