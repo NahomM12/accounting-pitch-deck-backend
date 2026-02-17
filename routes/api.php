@@ -71,6 +71,7 @@ Route::middleware('auth:sanctum')->get('/debug-auth', function (Request $request
 Route::post('/pitch-decks/test-auth', [PitchDeckController::class, 'testAuth'])->middleware('auth:sanctum');
 
 
+
 // Thumbnail management routes
 Route::middleware('auth:sanctum')->group(function () {
     // Get thumbnail info

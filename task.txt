@@ -1,0 +1,641 @@
+{
+  "PitchDeckController": {
+    "index": {
+      "route": "GET /api/pitch-decks",
+      "auth": ["auth:sanctum"],
+      "description": "List all published pitch decks with their related founder.",
+      "request": {
+        "type": "query",
+        "fields": {}
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "PitchDeck",
+              "includes": ["founder"]
+            }
+          }
+        }
+      }
+    },
+    "store": {
+      "route": "POST /api/pitch-decks",
+      "auth": ["auth:sanctum"],
+      "description": "Upload a new pitch deck file and create a draft pitch deck record, generating a WebP thumbnail from the first page.",
+      "request": {
+        "type": "multipart/form-data",
+        "fields": {
+          "title": "string, required, max:255",
+          "founder_id": "integer, required, must exist in founders.id",
+          "file": "file, required, pdf|ppt|pptx, max 20MB"
+        }
+      },
+      "responses": {
+        "201": {
+          "content_type": "application/json",
+          "body": {
+            "message": "string",
+            "pitch_deck": {
+              "id": "integer",
+              "founder_id": "integer",
+              "title": "string",
+              "file_path": "string",
+              "file_type": "string (pdf|ppt|pptx)",
+              "thumbnail_path": "string|null (WebP thumbnail from first page)",
+              "status": "string (draft|published|archived)",
+              "uploaded_by": "integer",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "file_url": "string (public URL to the stored file)"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        },
+        "500": {
+          "content_type": "application/json",
+          "body": {
+            "error": "string",
+            "message": "string"
+          }
+        }
+      }
+    },
+    "show": {
+      "route": "GET /api/pitch-decks/{id}",
+      "auth": ["auth:sanctum"],
+      "description": "Fetch a single published pitch deck with its founder.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "id": "integer, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "PitchDeck",
+            "includes": ["founder"]
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "update": {
+      "route": "PUT /api/pitch-decks/{id}",
+      "auth": ["auth:sanctum", "policy:update PitchDeck"],
+      "description": "Update title and/or status of an existing pitch deck.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "title": "string, sometimes|required, max:255",
+          "status": "string, sometimes|required, in:draft,published,archived"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "PitchDeck"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Forbidden"
+          }
+        }
+      }
+    },
+    "changeStatusByAdmin": {
+      "route": "PUT /api/pitch-decks/{id}/status",
+      "auth": ["auth:sanctum", "role:admin|superadmin"],
+      "description": "Admin-only endpoint to change pitch deck status.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "status": "string, required, in:draft,published,archived",
+          "notes": "string, optional, max:1000"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "message": "string",
+            "pitch_deck": {
+              "type": "PitchDeck"
+            },
+            "changes": {
+              "old_status": "string",
+              "new_status": "string",
+              "changed_by": "string (admin email)"
+            }
+          }
+        },
+        "401": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Unauthorized"
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Forbidden. Only admins and superadmins can change pitch deck status.",
+            "user_role": "string"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        }
+      }
+    },
+    "destroy": {
+      "route": "DELETE /api/pitch-decks/{id}",
+      "auth": ["auth:sanctum", "policy:delete PitchDeck"],
+      "description": "Delete a pitch deck and its stored file.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "id": "integer, required"
+        }
+      },
+      "responses": {
+        "204": {
+          "content_type": "application/json",
+          "body": null
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Forbidden"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "download": {
+      "route": "GET /api/pitch-decks/{id}/download",
+      "auth": ["auth:sanctum", "middleware:isinvestor"],
+      "description": "Download the original pitch deck file and log the download.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "id": "integer, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "binary",
+          "body": {
+            "file_stream": "binary content of the stored file",
+            "download_filename": "sanitized title + original extension"
+          }
+        },
+        "401": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Unauthorized"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "testAuth": {
+      "route": "POST /api/pitch-decks/test-auth",
+      "auth": ["auth:sanctum"],
+      "description": "Debug endpoint that returns the current authentication state and bearer token.",
+      "request": {
+        "type": "json",
+        "fields": {}
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "authenticated": "boolean",
+            "user_id": "integer|null",
+            "token": "string|null (bearer token from request header)"
+          }
+        }
+      }
+    }
+  },
+  "FounderController": {
+    "index": {
+      "route": "GET /api/founders",
+      "auth": [],
+      "description": "List founders with support for filtering and sorting on all table fields.",
+      "request": {
+        "type": "query",
+        "fields": {
+          "company_name": "string, optional, partial match",
+          "sector": "string, optional, exact match",
+          "location": "string, optional, exact match",
+          "funding_stage": "string, optional, exact match",
+          "valuation": "string, optional, exact match",
+          "years_of_establishment": "integer, optional, exact match",
+          "min_funding_amount": "numeric, optional, minimum funding_amount",
+          "max_funding_amount": "numeric, optional, maximum funding_amount",
+          "funding_amount": "numeric, optional, exact funding_amount",
+          "description": "string, optional, partial match",
+          "status": "string, optional, exact match",
+          "number_of_employees": "string, optional, exact match",
+          "search": "string, optional, fuzzy search across company_name, sector, location, description",
+          "sort_by": "string, optional, one of: id, company_name, sector, location, funding_stage, valuation, years_of_establishment, funding_amount, status, number_of_employees, created_at, updated_at (default: created_at)",
+          "sort_direction": "string, optional, asc|desc (default: desc)"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "array",
+            "items": {
+              "type": "Founder",
+              "fields": [
+                "id",
+                "company_name",
+                "sector",
+                "location",
+                "funding_stage",
+                "valuation",
+                "years_of_establishment",
+                "funding_amount",
+                "description",
+                "file_path",
+                "status",
+                "number_of_employees",
+                "created_at",
+                "updated_at"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "store": {
+      "route": "POST /api/founders",
+      "auth": [],
+      "description": "Create a new founder record.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "company_name": "string, required, max:255",
+          "sector": "string, required, max:255",
+          "location": "string, required, in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele",
+          "funding_stage": "string, required, in:pre-seed,seed,series A,series B,series C,IPO",
+          "valuation": "string, required, in:pre-seed,seed,series A,series B,series C,IPO",
+          "years_of_establishment": "integer, required, range:1900..current year",
+          "funding_amount": "numeric, required",
+          "description": "string, required, max:10000",
+          "number_of_employees": "string, required, in:1-10,11-50,51-200,201-500,501-1000,1001+"
+        }
+      },
+      "responses": {
+        "201": {
+          "content_type": "application/json",
+          "body": {
+            "type": "Founder"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        }
+      }
+    },
+    "show": {
+      "route": "GET /api/founders/{id}",
+      "auth": [],
+      "description": "Fetch a single founder record by ID.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "id": "integer, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "Founder"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "update": {
+      "route": "PUT/PATCH /api/founders/{id}",
+      "auth": [],
+      "description": "Update basic fields of an existing founder.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "company_name": "string, sometimes|required, max:255",
+          "website": "string|null, sometimes, max:255",
+          "industry": "string|null, sometimes, max:255"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "type": "Founder"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "destroy": {
+      "route": "DELETE /api/founders/{id}",
+      "auth": [],
+      "description": "Delete a founder record.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "id": "integer, required"
+        }
+      },
+      "responses": {
+        "204": {
+          "content_type": "application/json",
+          "body": null
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    }
+  },
+  "ThumbnailController": {
+    "upload": {
+      "route": "POST /api/pitch-decks/{pitchDeck}/thumbnail",
+      "auth": ["auth:sanctum"],
+      "description": "Upload a custom thumbnail image for a pitch deck and convert it to WebP.",
+      "request": {
+        "type": "multipart/form-data",
+        "fields": {
+          "thumbnail": "image file, required, jpeg|png|jpg|gif|svg|bmp, max 5MB",
+          "width": "integer, optional, 50-2000, default 300",
+          "height": "integer, optional, 50-2000, default 200"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Thumbnail uploaded successfully and converted to WebP",
+            "thumbnail_url": "string (public URL to stored thumbnail)",
+            "thumbnail_path": "string (storage path)",
+            "file_size": "integer (bytes)",
+            "dimensions": {
+              "width": "integer",
+              "height": "integer"
+            },
+            "pitch_deck": {
+              "id": "integer",
+              "title": "string",
+              "status": "string"
+            }
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Unauthorized to update this pitch deck"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        },
+        "500": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Failed to process thumbnail",
+            "error": "string"
+          }
+        }
+      }
+    },
+    "delete": {
+      "route": "DELETE /api/pitch-decks/{pitchDeck}/thumbnail",
+      "auth": ["auth:sanctum"],
+      "description": "Delete an existing thumbnail for a pitch deck.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "pitchDeck": "integer, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Thumbnail deleted successfully",
+            "pitch_deck": {
+              "id": "integer",
+              "title": "string",
+              "status": "string"
+            }
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Unauthorized to update this pitch deck"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "No thumbnail found to delete"
+          }
+        }
+      }
+    },
+    "show": {
+      "route": "GET /api/pitch-decks/{pitchDeck}/thumbnail",
+      "auth": ["auth:sanctum"],
+      "description": "Get thumbnail URL and metadata for a pitch deck.",
+      "request": {
+        "type": "route",
+        "fields": {
+          "pitchDeck": "integer, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "pitch_deck_id": "integer",
+            "pitch_deck_title": "string",
+            "thumbnail_url": "string",
+            "has_custom_thumbnail": "boolean",
+            "thumbnail_path": "string|null",
+            "file_type": "string"
+          }
+        },
+        "404": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Not Found"
+          }
+        }
+      }
+    },
+    "bulkConvert": {
+      "route": "POST /api/thumbnails/bulk-convert",
+      "auth": ["auth:sanctum", "role:admin|superadmin"],
+      "description": "Admin-only endpoint to bulk convert existing thumbnails to WebP.",
+      "request": {
+        "type": "json",
+        "fields": {}
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Bulk conversion completed",
+            "converted": "integer",
+            "failed": "integer",
+            "total_processed": "integer"
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "message": "Admin access required"
+          }
+        }
+      }
+    }
+  },
+  "RegistrationController": {
+    "login": {
+      "route": "POST /api/login",
+      "auth": [],
+      "description": "Authenticate a user and return a Sanctum access token.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "email": "string, required, email",
+          "password": "string, required"
+        }
+      },
+      "responses": {
+        "200": {
+          "content_type": "application/json",
+          "body": {
+            "user": "User model JSON",
+            "access_token": "string (plain-text token)",
+            "token_type": "string, always 'Bearer'"
+          }
+        },
+        "401": {
+          "content_type": "application/json",
+          "body": {
+            "error": "Invalid credentials"
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        }
+      }
+    },
+    "adminRegister": {
+      "route": "POST /api/admin/register",
+      "auth": ["auth:sanctum", "middleware:superadmin (for admin creation)"],
+      "description": "Register a new user (admin or lower) by an authenticated admin/superadmin.",
+      "request": {
+        "type": "json",
+        "fields": {
+          "name": "string, required, max:255",
+          "email": "string, required, email, unique:users",
+          "password": "string, required, min:8",
+          "role": "string, required, in: keys of User::ROLES, cannot be 'superadmin'"
+        }
+      },
+      "responses": {
+        "201": {
+          "content_type": "application/json",
+          "body": {
+            "type": "User"
+          }
+        },
+        "403": {
+          "content_type": "application/json",
+          "body": {
+            "error": "Only superadmins can register new admins. OR Cannot register superadmins via this endpoint."
+          }
+        },
+        "422": {
+          "content_type": "application/json",
+          "body": {
+            "errors": "validation error messages keyed by field name"
+          }
+        }
+      }
+    }
+  }
+}

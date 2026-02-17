@@ -6,7 +6,7 @@ use App\Models\PitchDeck;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
+use Intervention\Image\Laravel\Facades\Image;
 use Illuminate\Support\Str;
 
 class ThumbnailController extends Controller
@@ -30,10 +30,10 @@ class ThumbnailController extends Controller
         $pitchDeck = PitchDeck::findOrFail($pitchDeckId);
         
         // Check permissions - only owner or admin can upload thumbnail
-        $user = $request->user();
-        if ($pitchDeck->uploaded_by !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
-            return response()->json(['message' => 'Unauthorized to update this pitch deck'], 403);
-        }
+         $user = $request->user();
+         if ($pitchDeck->uploaded_by !== $user->id && !in_array($user->role, ['admin', 'superadmin'])) {
+             return response()->json(['message' => 'Unauthorized to update this pitch deck'], 403);
+         }
 
         $imageFile = $request->file('thumbnail');
         $width = $request->input('width', 300);
@@ -45,8 +45,9 @@ class ThumbnailController extends Controller
             $fileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '_' . Str::slug($originalName) . '.webp';
             
             // Create Intervention Image instance
-            $image = Image::make($imageFile);
-            
+            $image = Image::read($imageFile);
+            // Scale image to fit within dimensions while maintaining aspect ratio
+             $image->scale(width: $width, height: $height);
             // Resize if needed (maintain aspect ratio)
             $image->resize($width, $height, function ($constraint) {
                 $constraint->aspectRatio();
@@ -54,13 +55,13 @@ class ThumbnailController extends Controller
             });
             
             // Convert to WebP and optimize quality
-            $webpImage = $image->encode('webp', 85); // 85% quality
+              $encodedImage = $image->encodeByExtension('webp', quality: 85);
             
             // Define storage path
             $thumbnailPath = 'pitch_decks/thumbnails/' . $fileName;
             
             // Store in public disk
-            Storage::disk('public')->put($thumbnailPath, $webpImage);
+             Storage::disk('public')->put($thumbnailPath, $encodedImage); 
             
             // Delete old thumbnail if exists
             if ($pitchDeck->thumbnail_path && Storage::disk('public')->exists($pitchDeck->thumbnail_path)) {
@@ -210,7 +211,7 @@ class ThumbnailController extends Controller
                     $fileName = pathinfo($oldPath, PATHINFO_FILENAME) . '.webp';
                     $newPath = 'pitch_decks/thumbnails/' . $fileName;
                     
-                    $webpImage = $image->encode('webp', 85);
+                   $webpImage = $image->encodeByExtension('webp', quality: 85);
                     Storage::disk('public')->put($newPath, $webpImage);
                     
                     // Update record

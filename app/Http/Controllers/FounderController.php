@@ -58,11 +58,6 @@ class FounderController extends Controller
         if ($request->filled('description')) {
             $query->where('description', 'like', '%' . $request->input('description') . '%');
         }
-
-        // if ($request->filled('file_path')) {
-        //     $query->where('file_path', 'like', '%' . $request->input('file_path') . '%');
-        // }
-
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
