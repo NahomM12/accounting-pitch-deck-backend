@@ -310,9 +310,9 @@
     "store": {
       "route": "POST /api/founders",
       "auth": [],
-      "description": "Create a new founder record.",
+      "description": "Create a new founder record and upload an initial pitch deck file.",
       "request": {
-        "type": "json",
+        "type": "multipart/form-data",
         "fields": {
           "company_name": "string, required, max:255",
           "sector": "string, required, max:255",
@@ -322,20 +322,42 @@
           "years_of_establishment": "integer, required, range:1900..current year",
           "funding_amount": "numeric, required",
           "description": "string, required, max:10000",
-          "number_of_employees": "string, required, in:1-10,11-50,51-200,201-500,501-1000,1001+"
+          "number_of_employees": "string, required, in:1-10,11-50,51-200,201-500,501-1000,1001+",
+          "pitch_deck_title": "string, required, max:255",
+          "file": "file, required, pdf|ppt|pptx, max 20MB"
         }
       },
       "responses": {
         "201": {
           "content_type": "application/json",
           "body": {
-            "type": "Founder"
+            "message": "string",
+            "founder": "Founder model JSON",
+            "pitch_deck": {
+              "id": "integer",
+              "founder_id": "integer",
+              "title": "string",
+              "file_path": "string",
+              "file_type": "string (pdf|ppt|pptx)",
+              "thumbnail_path": "string|null (WebP thumbnail from first page)",
+              "status": "string (draft|published|archived)",
+              "uploaded_by": "integer|null",
+              "created_at": "datetime",
+              "updated_at": "datetime"
+            },
+            "file_url": "string (public URL to the stored file)"
           }
         },
         "422": {
           "content_type": "application/json",
           "body": {
             "errors": "validation error messages keyed by field name"
+          }
+        },
+        "500": {
+          "content_type": "application/json",
+          "body": {
+            "error": "string"
           }
         }
       }

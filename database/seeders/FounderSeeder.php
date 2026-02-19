@@ -22,7 +22,7 @@ class FounderSeeder extends Seeder
             'funding_amount' => 500000.00,
             'description' => 'Innovative tech solutions for modern problems.',
             'number_of_employees' => '11-50',
-            'status' => 'approved',
+            'status' => 'active',
         ]);
 
         Founders::create([
@@ -35,7 +35,7 @@ class FounderSeeder extends Seeder
             'funding_amount' => 2000000.00,
             'description' => 'Sustainable and renewable energy sources.',
             'number_of_employees' => '51-200',
-            'status' => 'approved',
+            'status' => 'active',
         ]);
     }
 }

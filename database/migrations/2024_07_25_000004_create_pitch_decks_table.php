@@ -13,7 +13,9 @@ return new class extends Migration
     {
         Schema::create('pitch_decks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('founder_id')->constrained('founders');
+            $table->foreignId('founder_id')
+                  ->constrained('founders')
+                  ->cascadeOnDelete();
             $table->string('title');
             $table->string('file_path');
             $table->enum('file_type', ['pdf', 'ppt', 'pptx']);
@@ -21,6 +23,8 @@ return new class extends Migration
             $table->enum('status', ['draft', 'published', 'archived']);
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
+
+            $table->unique('founder_id');
         });
     }
 

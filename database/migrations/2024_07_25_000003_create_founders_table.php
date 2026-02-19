@@ -36,7 +36,12 @@ return new class extends Migration
         $table->decimal('funding_amount', 15, 2)->nullable();
         $table->text('description')->nullable();
         $table->string('file_path')->nullable();
-        $table->string('status')->default('pending');
+        $table->enum('status', [
+            'pending',
+            'active',
+            'funded',
+            'archived',
+        ])->default('pending');
         $table->enum('number_of_employees', [ // Renamed from 'number of employees'
             '1-10', 
             '11-50', 

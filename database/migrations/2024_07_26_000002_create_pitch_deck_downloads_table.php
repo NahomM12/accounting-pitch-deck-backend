@@ -14,7 +14,10 @@ return new class extends Migration
         Schema::create('pitch_deck_downloads', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained('users');
-            $table->foreignId('pitch_deck_id')->constrained('pitch_decks');
+            $table->foreignId('pitch_deck_id')
+                  ->nullable()
+                  ->constrained('pitch_decks')
+                  ->nullOnDelete();
             $table->timestamp('downloaded_at')->nullable();
             $table->ipAddress('ip_address')->nullable();
         });

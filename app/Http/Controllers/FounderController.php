@@ -3,7 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Founders;
+use App\Models\PitchDeck;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\Facades\Image;
 //use Debugbar;
 
 class FounderController extends Controller
@@ -114,23 +118,102 @@ class FounderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-              'company_name' => 'required|string|max:255',
+            'company_name' => 'required|string|max:255',
             'sector' => 'required|string|max:255',
             'location' => 'required|string|in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele',
             'funding_stage' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
-            'valuation' => 'required|string|in:pre-seed,seed,series A,series B,series C,IPO',
+            'valuation' => 'required|string|in:pre seed under 1M$,seed 1M$ - 5M$,series A 5M$ - 10M$,series B 10M$ - 50M$,series C 50M$ - 100M$,IPO 100M$+',
             'years_of_establishment' => 'required|integer|min:1900|max:' . date('Y'),
             'funding_amount' => 'required|numeric',
             'description' => 'required|string|max:10000',
             'number_of_employees' => 'required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
-            'funding_amount' => 'required|numeric',
-            'description' => 'required|string',
-            'number_of_employees' => 'required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
+            'pitch_deck_title' => 'required|string|max:255',
+            'file' => 'required|file|mimes:pdf,ppt,pptx|max:20480',
         ]);
 
-        $founder = Founders::create($validated);
+        $founder = Founders::create([
+            'company_name' => $validated['company_name'],
+            'sector' => $validated['sector'],
+            'location' => $validated['location'],
+            'funding_stage' => $validated['funding_stage'],
+            'valuation' => $validated['valuation'],
+            'years_of_establishment' => $validated['years_of_establishment'],
+            'funding_amount' => $validated['funding_amount'],
+            'description' => $validated['description'],
+            'number_of_employees' => $validated['number_of_employees'],
+        ]);
 
-        return response()->json($founder, 201);
+        $file = $request->file('file');
+
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+            return response()->json([
+                'file' => ['Invalid file type. Only PDF, PPT, and PPTX files are allowed.'],
+            ], 422);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $fileName = time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension;
+
+        $filePath = $file->storeAs('pitch_decks', $fileName, 'public');
+
+        if (!$filePath) {
+            return response()->json([
+                'error' => 'Failed to store file',
+            ], 500);
+        }
+
+        $user = $request->user();
+\Log::info('User authentication check:', [
+    'has_user' => $user ? 'YES' : 'NO',
+    'user_id' => $user ? $user->id : 'NULL',
+    'route_middleware' => $request->route() ? implode(', ', $request->route()->gatherMiddleware()) : 'unknown',
+    'bearer_token' => $request->bearerToken() ? substr($request->bearerToken(), 0, 20) . '...' : 'NO_TOKEN'
+]);
+
+if (!$user) {
+    \Log::error('No authenticated user found for pitch deck upload');
+    return response()->json([
+        'error' => 'Authentication required',
+        'message' => 'You must be logged in to upload a pitch deck'
+    ], 401);
+}
+        $pitchDeck = PitchDeck::create([
+            'founder_id' => $founder->id,
+            'title' => $validated['pitch_deck_title'],
+            'file_path' => $filePath,
+            'file_type' => $extension,
+            'thumbnail_path' => null,
+            'status' => 'draft',
+            'uploaded_by' => $user ? $user->id : null,
+        ]);
+
+        // try {
+        //     if (in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+        //         $originalPath = Storage::disk('public')->path($filePath);
+        //         $image = Image::make($originalPath . '[0]');
+        //         $image->resize(300, 200, function ($constraint) {
+        //             $constraint->aspectRatio();
+        //             $constraint->upsize();
+        //         });
+        //         $thumbnailFileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '.webp';
+        //         $thumbnailPath = 'pitch_decks/thumbnails/' . $thumbnailFileName;
+        //         Storage::disk('public')->put($thumbnailPath, $image->encode('webp', 85));
+        //         $pitchDeck->thumbnail_path = $thumbnailPath;
+        //         $pitchDeck->save();
+        //     }
+        // } catch (\Throwable $e) {
+        //     \Log::warning('Failed to generate thumbnail from first page in FounderController@store: ' . $e->getMessage());
+        // }
+
+        // $fileUrl = asset('storage/' . $filePath);
+
+        return response()->json([
+            'message' => 'Founder profile and pitch deck created successfully',
+            'founder' => $founder,
+            'pitch_deck' => $pitchDeck,
+            //'file_url' => $fileUrl,
+        ], 201);
     }
 
     /**
@@ -148,8 +231,15 @@ class FounderController extends Controller
     {
         $validated = $request->validate([
             'company_name' => 'sometimes|required|string|max:255',
-            'website' => 'sometimes|nullable|string|max:255',
-            'industry' => 'sometimes|nullable|string|max:255',
+            'sector' => 'sometimes|required|string|max:255',
+            'location' => 'sometimes|required|string|in:addis ababa,diredawa,hawassa,bahirdar,gondar,mekele',
+            'funding_stage' => 'sometimes|required|string|in:pre-seed,seed,series A,series B,series C,IPO',
+            'valuation' => 'sometimes|required|string|in:pre seed under 1M$,seed 1M$ - 5M$,series A 5M$ - 10M$,series B 10M$ - 50M$,series C 50M$ - 100M$,IPO 100M$+',
+            'years_of_establishment' => 'sometimes|required|integer|min:1900|max:' . date('Y'),
+            'funding_amount' => 'sometimes|required|numeric',
+            'description' => 'sometimes|required|string|max:10000',
+            'number_of_employees' => 'sometimes|required|string|in:1-10,11-50,51-200,201-500,501-1000,1001+',
+            'status' => 'sometimes|required|string|in:pending,active,funded,archived',
         ]);
 
         $founder->update($validated);
