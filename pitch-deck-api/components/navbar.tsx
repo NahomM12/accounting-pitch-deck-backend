@@ -65,9 +65,14 @@ export function Navbar() {
               </Button>
             </>
           ) : (
-            <Button asChild size="sm">
-              <Link href="/login">Admin Login</Link>
-            </Button>
+            <>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href="/login">Admin Login</Link>
+              </Button>
+            </>
           )}
         </div>
 
@@ -124,13 +129,22 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              <Link
-                href="/login"
-                onClick={() => setMobileOpen(false)}
-                className="rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
-              >
-                Admin Login
-              </Link>
+              <>
+                <Link
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
+                >
+                  Sign Up
+                </Link>
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted"
+                >
+                  Admin Login
+                </Link>
+              </>
             )}
           </div>
         </div>

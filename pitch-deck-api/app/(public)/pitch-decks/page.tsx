@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { PitchDeckCard } from "@/components/pitch-deck-card"
 import { FilterSidebar } from "@/components/filter-sidebar"
-import { getPitchDecks } from "@/lib/api"
+import { getPublicPitchDecks } from "@/lib/api"
 import type { PitchDeck, FounderFilters } from "@/lib/types"
 
 const defaultFilters: FounderFilters = {
@@ -32,10 +32,9 @@ export default function PitchDecksPage() {
   const fetchDecks = useCallback(async () => {
     try {
       setLoading(true)
-      const data = await getPitchDecks()
+      const data = await getPublicPitchDecks()
       setDecks(data)
     } catch {
-      // API may not be available, use empty array
       setDecks([])
     } finally {
       setLoading(false)

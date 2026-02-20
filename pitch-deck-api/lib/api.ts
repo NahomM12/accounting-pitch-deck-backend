@@ -119,6 +119,15 @@ export async function getPitchDeck(id: number): Promise<PitchDeck> {
   return request<PitchDeck>(`/pitch-decks/${id}`)
 }
 
+// Public pitch decks (no auth, published only)
+export async function getPublicPitchDecks(): Promise<PitchDeck[]> {
+  return request<PitchDeck[]>("/public/pitch-decks")
+}
+
+export async function getPublicPitchDeck(id: number): Promise<PitchDeck> {
+  return request<PitchDeck>(`/public/pitch-decks/${id}`)
+}
+
 export async function createPitchDeck(data: FormData): Promise<{ message: string; pitch_deck: PitchDeck; file_url: string }> {
   return request(`/pitch-decks`, {
     method: "POST",

@@ -20,10 +20,8 @@ class PitchDeckController extends Controller
      */
     public function index()
     {
-        // Eager load founder information
         $pitchDecks = PitchDeck::with('founder')
-       // ->where('status', 'published')
-        ->get();
+            ->get();
         return response()->json($pitchDecks);
     }
 
@@ -249,8 +247,31 @@ class PitchDeckController extends Controller
     public function show($id)
     {
         $pitchDeck = PitchDeck::with('founder')
-        //->where('status', 'published')
-        ->findOrFail($id);
+            ->findOrFail($id);
+        return response()->json($pitchDeck);
+    }
+
+    /**
+     * Public listing of published pitch decks.
+     */
+    public function publicIndex()
+    {
+        $pitchDecks = PitchDeck::with('founder')
+            ->where('status', 'published')
+            ->get();
+
+        return response()->json($pitchDecks);
+    }
+
+    /**
+     * Public detail for a published pitch deck.
+     */
+    public function publicShow($id)
+    {
+        $pitchDeck = PitchDeck::with('founder')
+            ->where('status', 'published')
+            ->findOrFail($id);
+
         return response()->json($pitchDeck);
     }
 

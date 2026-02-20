@@ -16,7 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/status-badge"
-import { getPitchDeck, downloadPitchDeck } from "@/lib/api"
+import { getPublicPitchDeck, downloadPitchDeck } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -35,7 +35,7 @@ export default function PitchDeckDetailPage({
   useEffect(() => {
     async function fetchDeck() {
       try {
-        const data = await getPitchDeck(Number(id))
+        const data = await getPublicPitchDeck(Number(id))
         setDeck(data)
       } catch {
         setDeck(null)

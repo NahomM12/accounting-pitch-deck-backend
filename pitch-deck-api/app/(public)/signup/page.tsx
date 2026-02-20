@@ -1,4 +1,4 @@
-"use client"
+ "use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
@@ -7,15 +7,16 @@ import { TrendingUp, Eye, EyeOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/lib/auth-context"
+import type { LoginResponse } from "@/lib/types"
+import { API_BASE_URL } from "@/lib/api"
 import { toast } from "sonner"
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
   const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
@@ -23,16 +24,39 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const user = await login(email, password)
-      toast.success("Login successful!")
-      if (user.role === "investors") {
-        router.push("/")
-      } else {
-        router.push("/dashboard/admin")
+      const res = await fetch(`${API_BASE_URL}/investors/register`, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      })
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          message?: string
+          error?: string
+          errors?: Record<string, string[]>
+        }
+        const firstError =
+          (data.errors && Object.values(data.errors).flat()[0]) ||
+          data.message ||
+          data.error
+        throw new Error(firstError || "Sign up failed")
       }
+
+      const data = (await res.json()) as LoginResponse
+
+      const maxAge = 60 * 60 * 24 * 7
+      document.cookie = `auth_token=${data.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
+      document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(data.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+
+      toast.success("Account created successfully!")
+      window.location.href = "/"
     } catch (err) {
-      const error = err as Error & { data?: { error?: string } }
-      toast.error(error.data?.error || "Invalid credentials. Please try again.")
+      const error = err as Error
+      toast.error(error.message || "Failed to sign up")
     } finally {
       setIsLoading(false)
     }
@@ -51,15 +75,26 @@ export default function LoginPage() {
             </span>
           </Link>
           <h1 className="mt-6 font-serif text-2xl font-extrabold text-foreground">
-            Admin Login
+            Investor Sign Up
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to access the admin dashboard
+            Create an account to explore and download pitch decks.
           </p>
         </div>
 
         <div className="rounded-xl border bg-card p-8 shadow-sm">
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Jane Doe"
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -68,7 +103,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@ascendfinance.com"
+                placeholder="investor@example.com"
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -80,7 +115,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder="At least 8 characters"
                   className="pr-10"
                 />
                 <button
@@ -103,25 +138,19 @@ export default function LoginPage() {
               disabled={isLoading}
               className="font-serif font-semibold"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Creating account..." : "Sign Up"}
             </Button>
           </form>
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-2 text-sm text-muted-foreground">
-          <p>
-            New investor?{" "}
-            <Link href="/signup" className="text-primary hover:underline">
-              Create an account
-            </Link>
-          </p>
-          <p>
-            <Link href="/" className="text-primary hover:underline">
-              Back to Home
-            </Link>
-          </p>
-        </div>
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          Already have an account?{" "}
+          <Link href="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   )
 }
+

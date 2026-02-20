@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
-import type { User } from "./types"
+import type { User, LoginResponse } from "./types"
 import { login as apiLogin } from "./api"
 
 interface AuthContextType {
@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean
   isAdmin: boolean
   isSuperAdmin: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (email: string, password: string) => Promise<User>
   logout: () => void
 }
 
@@ -45,13 +45,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
-    const response = await apiLogin(email, password)
+    const response: LoginResponse = await apiLogin(email, password)
     setUser(response.user)
     setToken(response.access_token)
 
-    const maxAge = 60 * 60 * 24 * 7 // 7 days
+    const maxAge = 60 * 60 * 24 * 7
     document.cookie = `auth_token=${response.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
     document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(response.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+
+    return response.user
   }, [])
 
   const logout = useCallback(() => {

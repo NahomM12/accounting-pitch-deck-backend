@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [RegistrationController::class, 'login']);
+Route::post('/investors/register', [RegistrationController::class, 'investorRegister']);
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -24,6 +25,9 @@ Route::post('/founder/create-profile', [RegistrationController::class, 'createFo
 // Pitch Deck Routes
 Route::get('/pitch-decks', [PitchDeckController::class, 'index'])->middleware('auth:sanctum');
 Route::get('/pitch-decks/{id}', [PitchDeckController::class, 'show'])->middleware('auth:sanctum');
+// Public pitch deck browsing (published only)
+Route::get('/public/pitch-decks', [PitchDeckController::class, 'publicIndex']);
+Route::get('/public/pitch-decks/{id}', [PitchDeckController::class, 'publicShow']);
 //Route::middleware('auth')->get('/pitch-decks/{id}/download', [App\Http\Controllers\PitchDeckController::class, 'download']);
 Route::get('/pitch-decks/{id}/download', [PitchDeckController::class, 'download'])->middleware(['auth:sanctum']);
 Route::post('/pitch-decks', [PitchDeckController::class, 'store'])->middleware('auth:sanctum');
