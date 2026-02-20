@@ -32,8 +32,8 @@ Route::get('/public/pitch-decks/{id}', [PitchDeckController::class, 'publicShow'
 Route::get('/pitch-decks/{id}/download', [PitchDeckController::class, 'download'])->middleware(['auth:sanctum']);
 Route::post('/pitch-decks', [PitchDeckController::class, 'store'])->middleware('auth:sanctum');
 
-Route::middleware(['auth:sanctum', 'superadmin', ])->group(function () {
-    
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+
     Route::put('/pitch-decks/{id}', [PitchDeckController::class, 'update']);
     Route::delete('/pitch-decks/{id}', [PitchDeckController::class, 'destroy']);
     Route::post('/pitch-decks/{id}/file', [PitchDeckController::class, 'updateFile']);
