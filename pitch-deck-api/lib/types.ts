@@ -7,6 +7,19 @@ export interface User {
   updated_at: string
 }
 
+export interface AdminActivity {
+  id: number
+  admin_user_id: number
+  action: string
+  subject_type: string | null
+  subject_id: number | null
+  data: Record<string, unknown> | null
+  ip_address: string | null
+  created_at: string
+  updated_at: string
+  admin_user?: User
+}
+
 export interface Founder {
   id: number
   company_name: string

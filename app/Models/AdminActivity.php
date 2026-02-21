@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AdminActivity extends Model
 {
@@ -21,4 +22,9 @@ class AdminActivity extends Model
     protected $casts = [
         'data' => 'array',
     ];
+
+    public function adminUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_user_id');
+    }
 }

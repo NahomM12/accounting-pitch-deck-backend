@@ -299,7 +299,16 @@ class PitchDeckController extends Controller
         } catch (\Throwable $e) {
             \Log::warning('Failed to log admin activity: ' . $e->getMessage());
         }
-
+      // Log the action
+    \Log::info('Pitch deck status changed', [
+        'pitch_deck_id' => $pitchDeck->id,
+        'title' => $pitchDeck->title,
+        'old_status' => $oldStatus,
+        'new_status' => $newStatus,
+        'changed_by' => $user->id,
+        'changed_by_email' => $user->email,
+        'notes' => $request->input('notes', '')
+    ]);
         return response()->json($pitchDeck);
     }
 

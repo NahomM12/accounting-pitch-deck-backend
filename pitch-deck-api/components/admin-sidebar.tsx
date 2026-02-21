@@ -45,6 +45,7 @@ const navItems = [
     title: "Users",
     href: "/dashboard/admin/users",
     icon: Users,
+    superadminOnly: true,
   },
   {
     title: "Analytics",
@@ -55,7 +56,7 @@ const navItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const { user, logout } = useAuth()
+  const { user, logout, isSuperAdmin } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
 
   return (
@@ -95,7 +96,9 @@ export function AdminSidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-2">
         <ul className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !item.superadminOnly || isSuperAdmin)
+            .map((item) => {
             const isActive =
               pathname === item.href ||
               (item.href !== "/dashboard/admin" &&

@@ -10,26 +10,33 @@ import {
   ArrowUpRight,
   Plus,
   Loader2,
+  Activity,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { StatusBadge } from "@/components/status-badge"
 import { useAuth } from "@/lib/auth-context"
-import { getPitchDecks, getFounders } from "@/lib/api"
-import type { PitchDeck, Founder } from "@/lib/types"
+import { getPitchDecks, getFounders, getAdminActivities } from "@/lib/api"
+import type { PitchDeck, Founder, AdminActivity } from "@/lib/types"
 
 export default function AdminDashboardPage() {
   const { user } = useAuth()
   const [decks, setDecks] = useState<PitchDeck[]>([])
   const [founders, setFounders] = useState<Founder[]>([])
+  const [activities, setActivities] = useState<AdminActivity[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [d, f] = await Promise.all([getPitchDecks(), getFounders()])
+        const [d, f, a] = await Promise.all([
+          getPitchDecks(),
+          getFounders(),
+          getAdminActivities(),
+        ])
         setDecks(d)
         setFounders(f)
+        setActivities(a)
       } catch {
         // API may not be available
       } finally {
@@ -129,83 +136,46 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
-      <div className="mt-8 grid gap-8 lg:grid-cols-2">
-        {/* Recent Pitch Decks */}
+      {/* Recent Admin Activity */}
+      <div className="mt-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="font-serif text-base font-bold">
-              Recent Pitch Decks
+              Recent Admin Activity
             </CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/admin/pitch-decks">
-                View All
-                <ArrowUpRight className="ml-1 size-3" />
-              </Link>
-            </Button>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Activity className="size-4" />
+              <span>Last {activities.length} actions</span>
+            </div>
           </CardHeader>
           <CardContent>
-            {decks.length === 0 ? (
+            {activities.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No pitch decks yet.
+                No admin activity recorded yet.
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {decks.slice(0, 5).map((deck) => (
+                {activities.map((activity) => (
                   <div
-                    key={deck.id}
+                    key={activity.id}
                     className="flex items-center justify-between rounded-lg border p-3"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-foreground">
-                        {deck.title}
+                        {activity.admin_user?.name || "Unknown user"}{" "}
+                        <span className="text-xs lowercase text-muted-foreground">
+                          ({activity.action})
+                        </span>
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {deck.founder?.company_name || "Unknown founder"}
-                      </p>
-                    </div>
-                    <StatusBadge status={deck.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Founders */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="font-serif text-base font-bold">
-              Recent Founders
-            </CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/dashboard/admin/founders">
-                View All
-                <ArrowUpRight className="ml-1 size-3" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {founders.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No founders yet.
-              </p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {founders.slice(0, 5).map((founder) => (
-                  <div
-                    key={founder.id}
-                    className="flex items-center justify-between rounded-lg border p-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {founder.company_name}
-                      </p>
-                      <p className="text-xs capitalize text-muted-foreground">
-                        {founder.sector} &middot; {founder.location}
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {activity.subject_type && activity.subject_id
+                          ? `${activity.subject_type} #${activity.subject_id}`
+                          : "General action"}
                       </p>
                     </div>
-                    <Users className="size-4 text-muted-foreground" />
+                    <div className="ml-4 text-right text-xs text-muted-foreground">
+                      {new Date(activity.created_at).toLocaleString()}
+                    </div>
                   </div>
                 ))}
               </div>

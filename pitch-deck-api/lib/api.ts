@@ -1,4 +1,4 @@
-import type { Founder, FounderFilters, LoginResponse, PitchDeck, User } from "./types"
+import type { AdminActivity, Founder, FounderFilters, LoginResponse, PitchDeck, User } from "./types"
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test/api"
@@ -191,4 +191,18 @@ export async function deleteThumbnail(pitchDeckId: number): Promise<{ message: s
   return request(`/pitch-decks/${pitchDeckId}/thumbnail`, {
     method: "DELETE",
   })
+}
+
+// Admin activities
+export async function getAdminActivities(): Promise<AdminActivity[]> {
+  return request<AdminActivity[]>("/admin/activities")
+}
+
+// Users
+export async function getUsers(): Promise<User[]> {
+  return request<User[]>("/users")
+}
+
+export async function deleteUser(id: number): Promise<void> {
+  return request<void>(`/users/${id}`, { method: "DELETE" })
 }

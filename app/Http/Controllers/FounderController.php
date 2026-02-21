@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Founders;
 use App\Models\PitchDeck;
+use App\Models\AdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -164,20 +165,12 @@ class FounderController extends Controller
         }
 
         $user = $request->user();
-\Log::info('User authentication check:', [
-    'has_user' => $user ? 'YES' : 'NO',
-    'user_id' => $user ? $user->id : 'NULL',
-    'route_middleware' => $request->route() ? implode(', ', $request->route()->gatherMiddleware()) : 'unknown',
-    'bearer_token' => $request->bearerToken() ? substr($request->bearerToken(), 0, 20) . '...' : 'NO_TOKEN'
-]);
-
-if (!$user) {
-    \Log::error('No authenticated user found for pitch deck upload');
-    return response()->json([
-        'error' => 'Authentication required',
-        'message' => 'You must be logged in to upload a pitch deck'
-    ], 401);
-}
+        if (!$user) {
+            return response()->json([
+                'error' => 'Authentication required',
+                'message' => 'You must be logged in to upload a pitch deck'
+            ], 401);
+        }
         $pitchDeck = PitchDeck::create([
             'founder_id' => $founder->id,
             'title' => $validated['pitch_deck_title'],
@@ -206,13 +199,27 @@ if (!$user) {
         //     \Log::warning('Failed to generate thumbnail from first page in FounderController@store: ' . $e->getMessage());
         // }
 
-        // $fileUrl = asset('storage/' . $filePath);
+        try {
+            AdminActivity::create([
+                'admin_user_id' => $user->id,
+                'action' => 'create_founder',
+                'subject_type' => 'Founder',
+                'subject_id' => $founder->id,
+                'data' => [
+                    'company_name' => $founder->company_name,
+                    'sector' => $founder->sector,
+                    'location' => $founder->location,
+                ],
+                'ip_address' => $request->ip(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity for founder create: ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Founder profile and pitch deck created successfully',
             'founder' => $founder,
             'pitch_deck' => $pitchDeck,
-            //'file_url' => $fileUrl,
         ], 201);
     }
 
@@ -244,6 +251,22 @@ if (!$user) {
 
         $founder->update($validated);
 
+        try {
+            $user = $request->user();
+            if ($user) {
+                AdminActivity::create([
+                    'admin_user_id' => $user->id,
+                    'action' => 'update_founder',
+                    'subject_type' => 'Founder',
+                    'subject_id' => $founder->id,
+                    'data' => $validated,
+                    'ip_address' => $request->ip(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity for founder update: ' . $e->getMessage());
+        }
+
         return response()->json($founder);
     }
 
@@ -252,6 +275,27 @@ if (!$user) {
      */
     public function destroy(Founders $founder)
     {
+        $user = request()->user();
+
+        try {
+            if ($user) {
+                AdminActivity::create([
+                    'admin_user_id' => $user->id,
+                    'action' => 'delete_founder',
+                    'subject_type' => 'Founder',
+                    'subject_id' => $founder->id,
+                    'data' => [
+                        'company_name' => $founder->company_name,
+                        'sector' => $founder->sector,
+                        'location' => $founder->location,
+                    ],
+                    'ip_address' => request()->ip(),
+                ]);
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity for founder delete: ' . $e->getMessage());
+        }
+
         $founder->delete();
 
         return response()->json(null, 204);

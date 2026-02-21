@@ -5,6 +5,7 @@ use App\Http\Controllers\FounderController;
 use App\Http\Controllers\PitchDeckController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\ThumbnailController;
+use App\Models\AdminActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -46,6 +47,10 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
 
 
 Route::post('/pitch-decks/test-auth', [PitchDeckController::class, 'testAuth'])->middleware('auth:sanctum');
+
+Route::get('/admin/activities', function () {
+    return AdminActivity::with('adminUser')->latest()->limit(20)->get();
+})->middleware(['auth:sanctum', 'admin']);
 
 
 
