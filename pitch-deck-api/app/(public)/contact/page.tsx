@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useState } from "react"
 import { Mail, Phone, MapPin, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -67,14 +68,31 @@ export default function ContactPage() {
                 />
               </div>
 
-              <div className="mt-10 rounded-xl border bg-card p-6">
-                <h3 className="font-serif font-bold text-card-foreground">
-                  Office Hours
-                </h3>
-                <div className="mt-3 flex flex-col gap-1 text-sm text-muted-foreground">
-                  <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
-                  <p>Saturday: 10:00 AM - 2:00 PM</p>
-                  <p>Sunday: Closed</p>
+              <div className="mt-10 space-y-4">
+                <div className="rounded-xl border bg-card p-6">
+                  <h3 className="font-serif font-bold text-card-foreground">
+                    Office Hours
+                  </h3>
+                  <div className="mt-3 flex flex-col gap-1 text-sm text-muted-foreground">
+                    <p>Monday - Friday: 9:00 AM - 6:00 PM</p>
+                    <p>Saturday: 10:00 AM - 2:00 PM</p>
+                    <p>Sunday: Closed</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border bg-card p-6">
+                  <h3 className="font-serif font-bold text-card-foreground">
+                    Prefer a call?
+                  </h3>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Investors can book a dedicated session with our team to
+                    discuss opportunities, ask questions, and review pitch
+                    decks.
+                  </p>
+                  <Link href="/appointments">
+                    <Button className="mt-4 w-full font-serif font-semibold">
+                      Schedule an Appointment
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>

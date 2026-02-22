@@ -1,4 +1,15 @@
-import type { AdminActivity, Founder, FounderFilters, LoginResponse, PitchDeck, User } from "./types"
+import type {
+  AdminActivity,
+  Appointment,
+  AppointmentSlot,
+  AvailabilitySlot,
+  Founder,
+  FounderFilters,
+  LoginResponse,
+  PitchDeck,
+  PitchDeckDownloadLog,
+  User,
+} from "./types"
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test/api"
@@ -196,6 +207,81 @@ export async function deleteThumbnail(pitchDeckId: number): Promise<{ message: s
 // Admin activities
 export async function getAdminActivities(): Promise<AdminActivity[]> {
   return request<AdminActivity[]>("/admin/activities")
+}
+
+export async function getDownloadLogs(): Promise<PitchDeckDownloadLog[]> {
+  return request<PitchDeckDownloadLog[]>("/admin/downloads")
+}
+
+// Appointments
+export async function getAppointments(): Promise<Appointment[]> {
+  return request<Appointment[]>("/appointments")
+}
+
+export async function createAppointmentSlot(data: {
+  scheduled_at: string
+  duration_minutes?: number
+  title?: string
+  notes?: string
+}): Promise<Appointment> {
+  return request<Appointment>("/appointments", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function updateAppointment(
+  id: number,
+  data: Partial<Pick<Appointment, "scheduled_at" | "duration_minutes" | "status" | "title" | "notes">>
+): Promise<Appointment> {
+  return request<Appointment>(`/appointments/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteAppointment(id: number): Promise<void> {
+  return request<void>(`/appointments/${id}`, { method: "DELETE" })
+}
+
+export async function getAvailableAppointments(): Promise<Appointment[]> {
+  return request<Appointment[]>("/appointments/available")
+}
+
+export async function getMyAppointments(): Promise<Appointment[]> {
+  return request<Appointment[]>("/appointments/mine")
+}
+
+export async function getAvailability(dayOfWeek?: string): Promise<AvailabilitySlot[]> {
+  const query = dayOfWeek ? `?day_of_week=${encodeURIComponent(dayOfWeek)}` : ""
+  return request<AvailabilitySlot[]>(`/availability${query}`)
+}
+
+export async function createAvailabilitySlot(data: {
+  day_of_week: string
+  start_time: string
+  end_time: string
+  increment_minutes: number
+}): Promise<AvailabilitySlot> {
+  return request<AvailabilitySlot>("/availability", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function deleteAvailabilitySlot(id: number): Promise<void> {
+  return request<void>(`/availability/${id}`, { method: "DELETE" })
+}
+
+export async function getAppointmentSlots(): Promise<AppointmentSlot[]> {
+  return request<AppointmentSlot[]>("/appointments/available")
+}
+
+export async function bookAppointmentAt(time: string): Promise<Appointment> {
+  return request<Appointment>("/appointments/book", {
+    method: "POST",
+    body: JSON.stringify({ scheduled_at: time }),
+  })
 }
 
 // Users

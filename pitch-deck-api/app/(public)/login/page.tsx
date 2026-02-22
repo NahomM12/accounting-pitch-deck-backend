@@ -106,6 +106,13 @@ export default function LoginPage() {
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            By signing in, you agree to our{" "}
+            <Link href="/terms" className="text-primary hover:underline">
+              Terms &amp; Conditions
+            </Link>
+            .
+          </p>
         </div>
 
         <div className="mt-6 flex flex-col items-center gap-2 text-sm text-muted-foreground">

@@ -143,14 +143,22 @@ export default function SignupPage() {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
+        <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
+          <p>
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+          <p className="text-xs">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="text-primary hover:underline">
+              Terms &amp; Conditions
+            </Link>
+            .
+          </p>
+        </div>
       </div>
     </div>
   )
 }
-

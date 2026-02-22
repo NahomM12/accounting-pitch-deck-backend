@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Building2,
+  CalendarClock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -25,6 +26,11 @@ const navItems = [
     title: "Dashboard",
     href: "/dashboard/admin",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Appointments",
+    href: "/dashboard/admin/appointments",
+    icon: CalendarClock,
   },
   {
     title: "Founders",

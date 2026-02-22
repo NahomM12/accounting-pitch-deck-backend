@@ -83,9 +83,19 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t pt-6">
-          <p className="text-center text-xs text-muted-foreground">
-            {`\u00A9 ${new Date().getFullYear()} Ascend Finance & Advisory. All rights reserved.`}
-          </p>
+          <div className="flex flex-col items-center gap-2 text-center text-xs text-muted-foreground sm:flex-row sm:justify-between">
+            <p>
+              {`\u00A9 ${new Date().getFullYear()} Ascend Finance & Advisory. All rights reserved.`}
+            </p>
+            <p>
+              <Link
+                href="/terms"
+                className="text-xs font-medium text-primary hover:underline"
+              >
+                Terms &amp; Conditions
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -20,6 +20,47 @@ export interface AdminActivity {
   admin_user?: User
 }
 
+export interface PitchDeckDownloadLog {
+  id: number
+  user_id: number
+  pitch_deck_id: number
+  downloaded_at: string
+  ip_address: string | null
+  user?: User
+  pitch_deck?: PitchDeck
+}
+
+export interface Appointment {
+  id: number
+  admin_user_id: number
+  investor_user_id: number | null
+  scheduled_at: string
+  duration_minutes: number
+  status: "available" | "booked" | "cancelled" | "completed"
+  title: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  admin_user?: User
+  investor_user?: User
+}
+
+export interface AvailabilitySlot {
+  id: number
+  admin_user_id: number
+  day_of_week: "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday"
+  start_time: string
+  end_time: string
+  increment_minutes: number
+  created_at: string
+  updated_at: string
+}
+
+export interface AppointmentSlot {
+  scheduled_at: string
+  end_at: string
+}
+
 export interface Founder {
   id: number
   company_name: string

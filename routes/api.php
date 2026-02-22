@@ -5,7 +5,10 @@ use App\Http\Controllers\FounderController;
 use App\Http\Controllers\PitchDeckController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\ThumbnailController;
+use App\Http\Controllers\AppointmentController;
+use App\Http\Controllers\AvailabilityController;
 use App\Models\AdminActivity;
+use App\Models\PitchDeckDownload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -51,6 +54,29 @@ Route::post('/pitch-decks/test-auth', [PitchDeckController::class, 'testAuth'])-
 Route::get('/admin/activities', function () {
     return AdminActivity::with('adminUser')->latest()->limit(20)->get();
 })->middleware(['auth:sanctum', 'admin']);
+
+Route::get('/admin/downloads', function () {
+    return PitchDeckDownload::with(['user', 'pitchDeck'])->orderByDesc('downloaded_at')->limit(20)->get();
+})->middleware(['auth:sanctum', 'admin']);
+
+// Appointments
+Route::middleware(['auth:sanctum', 'admin'])->group(function () {
+    Route::get('/appointments', [AppointmentController::class, 'index']);
+    Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::put('/appointments/{id}', [AppointmentController::class, 'update']);
+    Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
+
+    Route::get('/availability', [AvailabilityController::class, 'index']);
+    Route::post('/availability', [AvailabilityController::class, 'store']);
+    Route::put('/availability/{id}', [AvailabilityController::class, 'update']);
+    Route::delete('/availability/{id}', [AvailabilityController::class, 'destroy']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/appointments/available', [AppointmentController::class, 'available']);
+    Route::post('/appointments/book', [AppointmentController::class, 'book']);
+    Route::get('/appointments/mine', [AppointmentController::class, 'myAppointments']);
+});
 
 
 
