@@ -27,4 +27,8 @@ class Founders extends Model
     {
         return $this->hasMany(AdminReview::class);
     }
+    public function pitchdecks()
+    {
+        return $this->hasMany(PitchDeck::class,'founder_id');
+    }
 }

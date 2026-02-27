@@ -191,7 +191,7 @@ export default function EditPitchDeckPage({
               Preview file ({deck.file_type.toUpperCase()})
             </Button>
           )}
-          <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
+          {/* <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
             <p className="text-sm font-medium text-foreground">
               Replace pitch deck file
             </p>
@@ -246,7 +246,7 @@ export default function EditPitchDeckPage({
             >
               {isReplacingFile ? "Replacing..." : "Replace File"}
             </Button>
-          </div>
+          </div> */}
           <Button
             type="submit"
             disabled={isSubmitting}

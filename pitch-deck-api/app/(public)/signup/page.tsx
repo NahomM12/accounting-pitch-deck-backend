@@ -1,15 +1,23 @@
- "use client"
+"use client"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { TrendingUp, Eye, EyeOff } from "lucide-react"
+import { TrendingUp, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { LoginResponse } from "@/lib/types"
 import { API_BASE_URL } from "@/lib/api"
 import { toast } from "sonner"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+// Define the error response type
+interface ValidationErrorResponse {
+  message?: string
+  error?: string
+  errors?: Record<string, string[]> // This matches Laravel's format: { "field": ["error message"] }
+}
 
 export default function SignupPage() {
   const [name, setName] = useState("")
@@ -17,11 +25,41 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  
+  // State for field-specific errors
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  // State for general form error
+  const [formError, setFormError] = useState<string | null>(null)
+  
   const router = useRouter()
+
+  // Clear field error when user starts typing
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value)
+    if (fieldErrors.name) {
+      setFieldErrors(prev => ({ ...prev, name: "" }))
+    }
+  }
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value)
+    if (fieldErrors.email) {
+      setFieldErrors(prev => ({ ...prev, email: "" }))
+    }
+  }
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value)
+    if (fieldErrors.password) {
+      setFieldErrors(prev => ({ ...prev, password: "" }))
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
+    setFieldErrors({})
+    setFormError(null)
 
     try {
       const res = await fetch(`${API_BASE_URL}/investors/register`, {
@@ -33,29 +71,52 @@ export default function SignupPage() {
         body: JSON.stringify({ name, email, password }),
       })
 
+      const data = await res.json().catch(() => ({})) as ValidationErrorResponse
+
       if (!res.ok) {
-        const data = (await res.json().catch(() => ({}))) as {
-          message?: string
-          error?: string
-          errors?: Record<string, string[]>
+        // Handle Laravel-style validation errors
+        if (data.errors) {
+          // Convert Laravel errors to field-specific error messages
+          const errors: Record<string, string> = {}
+          
+          // Loop through each field and its array of errors
+          Object.entries(data.errors).forEach(([field, messages]) => {
+            if (Array.isArray(messages) && messages.length > 0) {
+              errors[field] = messages[0] // Take the first error message
+            }
+          })
+          
+          setFieldErrors(errors)
+          
+          // Show first error in toast as well
+          const firstErrorField = Object.keys(errors)[0]
+          if (firstErrorField) {
+            toast.error(errors[firstErrorField])
+          } else {
+            toast.error("Please check the form for errors")
+          }
+        } else {
+          // Handle other types of errors
+          const errorMessage = data.message || data.error || "Sign up failed"
+          setFormError(errorMessage)
+          toast.error(errorMessage)
         }
-        const firstError =
-          (data.errors && Object.values(data.errors).flat()[0]) ||
-          data.message ||
-          data.error
-        throw new Error(firstError || "Sign up failed")
+        
+        setIsLoading(false)
+        return
       }
 
-      const data = (await res.json()) as LoginResponse
-
+      // Success - store token and redirect
+      const loginData = data as LoginResponse
       const maxAge = 60 * 60 * 24 * 7
-      document.cookie = `auth_token=${data.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
-      document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(data.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+      document.cookie = `auth_token=${loginData.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
+      document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(loginData.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
 
       toast.success("Account created successfully!")
       window.location.href = "/"
     } catch (err) {
       const error = err as Error
+      setFormError(error.message || "Failed to sign up")
       toast.error(error.message || "Failed to sign up")
     } finally {
       setIsLoading(false)
@@ -83,40 +144,79 @@ export default function SignupPage() {
         </div>
 
         <div className="rounded-xl border bg-card p-8 shadow-sm">
+          {/* Display general form error if any */}
+          {formError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{formError}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            {/* Name Field */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name" className={fieldErrors.name ? "text-destructive" : ""}>
+                Full Name
+              </Label>
               <Input
                 id="name"
                 type="text"
                 required
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={handleNameChange}
                 placeholder="Jane Doe"
+                className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                aria-invalid={!!fieldErrors.name}
+                aria-describedby={fieldErrors.name ? "name-error" : undefined}
               />
+              {fieldErrors.name && (
+                <p id="name-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.name}
+                </p>
+              )}
             </div>
+
+            {/* Email Field */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className={fieldErrors.email ? "text-destructive" : ""}>
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={handleEmailChange}
                 placeholder="investor@example.com"
+                className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? "email-error" : undefined}
               />
+              {fieldErrors.email && (
+                <p id="email-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
+
+            {/* Password Field - FIXED with proper error handling */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className={fieldErrors.password ? "text-destructive" : ""}>
+                Password
+              </Label>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handlePasswordChange}
                   placeholder="At least 8 characters"
-                  className="pr-10"
+                  className={`pr-10 ${fieldErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  aria-invalid={!!fieldErrors.password}
+                  aria-describedby={fieldErrors.password ? "password-error" : undefined}
                 />
                 <button
                   type="button"
@@ -131,7 +231,22 @@ export default function SignupPage() {
                   )}
                 </button>
               </div>
+              {/* Password error message - this will now show properly */}
+              {fieldErrors.password && (
+                <p id="password-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {fieldErrors.password}
+                </p>
+              )}
+              {/* Password hint */}
+              {!fieldErrors.password && password.length > 0 && password.length < 8 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  Password must be at least 8 characters
+                </p>
+              )}
             </div>
+
             <Button
               type="submit"
               size="lg"

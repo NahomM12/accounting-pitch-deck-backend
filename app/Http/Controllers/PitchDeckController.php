@@ -30,116 +30,101 @@ class PitchDeckController extends Controller
      * If a pitch deck already exists for the given founder_id,
      * replace the existing file and metadata instead of creating a new record.
      */
-    public function store(Request $request)
-    {
-        try {
-            $user = auth()->user();
+  public function store(Request $request)
+{
+    try {
+        $user = auth()->user();
 
-            $validator = Validator::make($request->all(), [
-                'title' => 'required|string|max:255',
-                'founder_id' => 'required|exists:founders,id',
-                'file' => 'required|file|mimes:pdf,ppt,pptx|max:20480',
-            ]);
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'founder_id' => 'required|exists:founders,id',
+            'file' => 'required|file|mimes:pdf,ppt,pptx|max:20480',
+        ]);
 
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 422);
-            }
-
-            $file = $request->file('file');
-
-            $extension = strtolower($file->getClientOriginalExtension());
-
-            if (!in_array($extension, ['pdf', 'ppt', 'pptx'])) {
-                return response()->json([
-                    'file' => ['Invalid file type. Only PDF, PPT, and PPTX files are allowed.'],
-                ], 422);
-            }
-
-            $originalName = $file->getClientOriginalName();
-            $fileName = time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension;
-
-            $filePath = $file->storeAs('pitch_decks', $fileName, 'public');
-
-            if (!$filePath) {
-                throw new \Exception('Failed to store file');
-            }
-
-            $existingDeck = PitchDeck::where('founder_id', $request->founder_id)->first();
-
-            if ($existingDeck) {
-                if ($existingDeck->file_path && Storage::disk('public')->exists($existingDeck->file_path)) {
-                    Storage::disk('public')->delete($existingDeck->file_path);
-                }
-                if ($existingDeck->thumbnail_path && Storage::disk('public')->exists($existingDeck->thumbnail_path)) {
-                    Storage::disk('public')->delete($existingDeck->thumbnail_path);
-                }
-
-                $pitchDeck = $existingDeck;
-                $pitchDeck->title = $request->title;
-                $pitchDeck->file_path = $filePath;
-                $pitchDeck->file_type = $extension;
-                $pitchDeck->status = 'draft';
-                $pitchDeck->thumbnail_path = null;
-                $pitchDeck->uploaded_by = $user ? $user->id : $pitchDeck->uploaded_by;
-                $pitchDeck->save();
-            } else {
-                $pitchDeck = PitchDeck::create([
-                    'founder_id' => $request->founder_id,
-                    'title' => $request->title,
-                    'file_path' => $filePath,
-                    'file_type' => $extension,
-                    'thumbnail_path' => null,
-                    'status' => 'draft',
-                    'uploaded_by' => $user ? $user->id : null,
-                ]);
-            }
-
-            try {
-                if (in_array($extension, ['pdf', 'ppt', 'pptx'])) {
-                    $originalPath = Storage::disk('public')->path($filePath);
-                    $image = Image::make($originalPath . '[0]');
-                    $image->resize(300, 200, function ($constraint) {
-                        $constraint->aspectRatio();
-                        $constraint->upsize();
-                    });
-                    $thumbnailFileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '.webp';
-                    $thumbnailPath = 'pitch_decks/thumbnails/' . $thumbnailFileName;
-                    Storage::disk('public')->put($thumbnailPath, $image->encode('webp', 85));
-                    $pitchDeck->thumbnail_path = $thumbnailPath;
-                    $pitchDeck->save();
-                }
-            } catch (\Throwable $e) {
-                \Log::warning('Failed to generate thumbnail from first page: ' . $e->getMessage());
-            }
-
-            try {
-                $this->logAdminActivity($request, 'add_or_replace_pitchdeck', 'PitchDeck', $pitchDeck->id, [
-                    'title' => $pitchDeck->title,
-                    'founder_id' => $pitchDeck->founder_id,
-                    'file_path' => $pitchDeck->file_path,
-                ]);
-            } catch (\Throwable $e) {
-                \Log::warning('Failed to log admin activity: ' . $e->getMessage());
-            }
-
-            $fileUrl = asset('storage/' . $filePath);
-
-            return response()->json([
-                'message' => 'Pitch deck uploaded successfully',
-                'pitch_deck' => $pitchDeck,
-                'file_url' => $fileUrl,
-            ], 201);
-        } catch (\Exception $e) {
-            \Log::error('Error in PitchDeckController@store', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            return response()->json([
-                'error' => 'Internal server error',
-                'message' => $e->getMessage(),
-            ], 500);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
         }
+
+        $file = $request->file('file');
+
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        if (!in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+            return response()->json([
+                'file' => ['Invalid file type. Only PDF, PPT, and PPTX files are allowed.'],
+            ], 422);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $fileName = time() . '_' . Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) . '.' . $extension;
+
+        $filePath = $file->storeAs('pitch_decks', $fileName, 'public');
+
+        if (!$filePath) {
+            throw new \Exception('Failed to store file');
+        }
+
+        // REMOVED THE REPLACEMENT LOGIC - Now we always create a new pitch deck
+        $pitchDeck = PitchDeck::create([
+            'founder_id' => $request->founder_id,
+            'title' => $request->title,
+            'file_path' => $filePath,
+            'file_type' => $extension,
+            'thumbnail_path' => null,
+            'status' => 'draft',
+            'uploaded_by' => $user ? $user->id : null,
+        ]);
+
+        // Generate thumbnail
+        try {
+            if (in_array($extension, ['pdf', 'ppt', 'pptx'])) {
+                $originalPath = Storage::disk('public')->path($filePath);
+                $image = Image::make($originalPath . '[0]');
+                $image->resize(300, 200, function ($constraint) {
+                    $constraint->aspectRatio();
+                    $constraint->upsize();
+                });
+                $thumbnailFileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '.webp';
+                $thumbnailPath = 'pitch_decks/thumbnails/' . $thumbnailFileName;
+                Storage::disk('public')->put($thumbnailPath, $image->encode('webp', 85));
+                $pitchDeck->thumbnail_path = $thumbnailPath;
+                $pitchDeck->save();
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to generate thumbnail: ' . $e->getMessage());
+        }
+
+        // Log activity
+        try {
+            $this->logAdminActivity($request, 'create_pitchdeck', 'PitchDeck', $pitchDeck->id, [
+                'title' => $pitchDeck->title,
+                'founder_id' => $pitchDeck->founder_id,
+                'file_path' => $pitchDeck->file_path,
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to log admin activity: ' . $e->getMessage());
+        }
+
+        $fileUrl = asset('storage/' . $filePath);
+
+        return response()->json([
+            'message' => 'Pitch deck uploaded successfully',
+            'pitch_deck' => $pitchDeck,
+            'file_url' => $fileUrl,
+            'total_founder_decks' => PitchDeck::where('founder_id', $request->founder_id)->count()
+        ], 201);
+        
+    } catch (\Exception $e) {
+        \Log::error('Error in PitchDeckController@store', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'error' => 'Internal server error',
+            'message' => $e->getMessage(),
+        ], 500);
     }
+}
 
     /**
      * Replace the file for an existing pitch deck.
@@ -278,117 +263,69 @@ class PitchDeckController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
-    {
-        $pitchDeck = PitchDeck::findOrFail($id);
-         // $this->authorize('update', $pitchDeck);
-        $validator = Validator::make($request->all(), [
-            'title' => 'sometimes|required|string|max:255',
-            'status' => 'sometimes|required|string|in:draft,published,archived',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json($validator->errors(), 422);
-        }
-
-        $pitchDeck->update($request->only('title', 'status'));
-
-        // Log admin activity for editing a pitch deck
-        try {
-            $this->logAdminActivity($request, 'edit_pitchdeck', 'PitchDeck', $pitchDeck->id, $request->only('title', 'status'));
-        } catch (\Throwable $e) {
-            \Log::warning('Failed to log admin activity: ' . $e->getMessage());
-        }
-      // Log the action
-    \Log::info('Pitch deck status changed', [
-        'pitch_deck_id' => $pitchDeck->id,
-        'title' => $pitchDeck->title,
-        'old_status' => $oldStatus,
-        'new_status' => $newStatus,
-        'changed_by' => $user->id,
-        'changed_by_email' => $user->email,
-        'notes' => $request->input('notes', '')
-    ]);
-        return response()->json($pitchDeck);
-    }
-
-    /**
-     * Change the status of a pitch deck (admin only).
-     */
-    /**
- * Change the status of a pitch deck (admin only).
- * Admin can change from draft→published, published→archived, etc.
- */
-public function changeStatusByAdmin(Request $request, $id)
+  public function update(Request $request, $id)
 {
-    // Check if user is admin or superadmin
-    $user = $request->user();
+    $pitchDeck = PitchDeck::findOrFail($id);
     
+    // Get the authenticated user
+    $user = $request->user();
     if (!$user) {
         return response()->json(['message' => 'Unauthorized'], 401);
     }
     
-    // Check user role - adjust based on your User model
-    $allowedRoles = ['admin', 'superadmin'];
-    if (!in_array($user->role, $allowedRoles)) {
-        return response()->json([
-            'message' => 'Forbidden. Only admins and superadmins can change pitch deck status.',
-            'user_role' => $user->role
-        ], 403);
-    }
+    // Store old values before update
+    $oldStatus = $pitchDeck->status;
+    $oldTitle = $pitchDeck->title;
     
     $validator = Validator::make($request->all(), [
-        'status' => 'required|string|in:draft,published,archived',
-        'notes' => 'nullable|string|max:1000', // Optional admin notes
+        'title' => 'sometimes|required|string|max:255',
+        'status' => 'sometimes|required|string|in:draft,published,archived',
+        'notes' => 'nullable|string|max:1000', // Optional notes field
     ]);
 
     if ($validator->fails()) {
         return response()->json($validator->errors(), 422);
     }
 
-    $pitchDeck = PitchDeck::findOrFail($id);
-    
-    // Log the status change
-    $oldStatus = $pitchDeck->status;
-    $newStatus = $request->input('status');
+    // Get the new values from request
+    $newTitle = $request->input('title', $oldTitle);
+    $newStatus = $request->input('status', $oldStatus);
     
     // Update the pitch deck
-    $pitchDeck->update([
-        'status' => $newStatus,
-        // If you want to track who changed the status and when:
-        // 'status_changed_by' => $user->id,
-        // 'status_changed_at' => now(),
-    ]);
-    
-    // Log the action
-    \Log::info('Pitch deck status changed', [
-        'pitch_deck_id' => $pitchDeck->id,
-        'title' => $pitchDeck->title,
-        'old_status' => $oldStatus,
-        'new_status' => $newStatus,
-        'changed_by' => $user->id,
-        'changed_by_email' => $user->email,
-        'notes' => $request->input('notes', '')
-    ]);
+    $pitchDeck->update($request->only('title', 'status'));
 
-    // Persist admin activity
+    // Log admin activity for editing a pitch deck
     try {
-        $this->logAdminActivity($request, 'change_status', 'PitchDeck', $pitchDeck->id, [
+        $this->logAdminActivity($request, 'edit_pitchdeck', 'PitchDeck', $pitchDeck->id, [
+            'old_title' => $oldTitle,
+            'new_title' => $newTitle,
             'old_status' => $oldStatus,
             'new_status' => $newStatus,
-            'notes' => $request->input('notes', ''),
+            'notes' => $request->input('notes', '')
         ]);
     } catch (\Throwable $e) {
         \Log::warning('Failed to log admin activity: ' . $e->getMessage());
     }
-
+    
+    // Log the action
+    \Log::info('Pitch deck updated', [
+        'pitch_deck_id' => $pitchDeck->id,
+        'title' => $pitchDeck->title,
+        'old_status' => $oldStatus,
+        'new_status' => $newStatus,
+        'old_title' => $oldTitle,
+        'new_title' => $newTitle,
+        'changed_by' => $user->id,
+        'changed_by_email' => $user->email,
+        'notes' => $request->input('notes', '')
+    ]);
+    
     return response()->json([
-        'message' => 'Pitch deck status updated successfully',
+        'message' => 'Pitch deck updated successfully',
         'pitch_deck' => $pitchDeck,
         'changes' => [
-            'old_status' => $oldStatus,
-            'new_status' => $newStatus,
-            'changed_by' => $user->email
+            'title' => $oldTitle !== $newTitle ? ['old' => $oldTitle, 'new' => $newTitle] : null,
+            'status' => $oldStatus !== $newStatus ? ['old' => $oldStatus, 'new' => $newStatus] : null,
         ]
     ]);
 }
@@ -440,7 +377,6 @@ public function changeStatusByAdmin(Request $request, $id)
     /**
      * Download the specified pitch deck.
      */
-   
    public function download(Request $request, $id)
 {
     \Log::info('=== DOWNLOAD METHOD STARTED ===');
@@ -565,5 +501,4 @@ public function changeStatusByAdmin(Request $request, $id)
         ], 500);
     }
 }
-   
 }
