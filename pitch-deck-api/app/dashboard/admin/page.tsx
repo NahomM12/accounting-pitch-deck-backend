@@ -147,10 +147,13 @@ export default function AdminDashboardPage() {
             <CardTitle className="font-serif text-base font-bold">
               Recent Admin Activity
             </CardTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Link
+              href="/dashboard/admin/activities"
+              className="flex items-center gap-2 text-xs text-primary hover:underline"
+            >
               <Activity className="size-4" />
-              <span>Last {activities.length} actions</span>
-            </div>
+              <span>View all</span>
+            </Link>
           </CardHeader>
           <CardContent>
             {activities.length === 0 ? (
@@ -159,7 +162,7 @@ export default function AdminDashboardPage() {
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {activities.map((activity) => {
+                {activities.slice(0, 8).map((activity) => {
                   const title =
                     (activity.data &&
                       typeof activity.data === "object" &&
@@ -277,10 +280,13 @@ export default function AdminDashboardPage() {
             <CardTitle className="font-serif text-base font-bold">
               Recent Pitch Deck Downloads
             </CardTitle>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Link
+              href="/dashboard/admin/downloads"
+              className="flex items-center gap-2 text-xs text-primary hover:underline"
+            >
               <Download className="size-4" />
-              <span>Last {downloads.length} downloads</span>
-            </div>
+              <span>View all</span>
+            </Link>
           </CardHeader>
           <CardContent>
             {downloads.length === 0 ? (
@@ -289,7 +295,7 @@ export default function AdminDashboardPage() {
               </p>
             ) : (
               <div className="flex flex-col gap-3">
-                {downloads.map((log) => (
+                {downloads.slice(0, 8).map((log) => (
                   <div
                     key={log.id}
                     className="flex items-center justify-between rounded-lg border p-3"

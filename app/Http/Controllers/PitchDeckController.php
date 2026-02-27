@@ -377,24 +377,36 @@ class PitchDeckController extends Controller
     /**
      * Download the specified pitch deck.
      */
-   public function download(Request $request, $id)
-{
+    public function download(Request $request, $id)
+    {
     \Log::info('=== DOWNLOAD METHOD STARTED ===');
     \Log::info('Download requested for pitch deck ID: ' . $id);
     
-    // Check authentication
-    $user = $request->user();
+        // Check authentication
+        $user = $request->user();
     \Log::info('User authenticated:', [
         'is_authenticated' => $user ? 'YES' : 'NO',
         'user_id' => $user ? $user->id : 'NULL'
     ]);
     
-    if (!$user) {
-        \Log::error('Download attempted without authentication');
-        return response()->json(['message' => 'Unauthorized'], 401);
-    }
-    
-    try {
+        if (! $user) {
+            \Log::error('Download attempted without authentication');
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $key = 'downloads:' . $user->id;
+        $count = cache()->increment($key);
+        if ($count === 1) {
+            cache()->put($key, $count, now()->addMinutes(1));
+        }
+        if ($count > 20) {
+            \Log::warning('Rate limit exceeded for user ' . $user->id);
+            return response()->json([
+                'message' => 'Too many download attempts. Please try again later.',
+            ], 429);
+        }
+
+        try {
         $pitchDeck = PitchDeck::with('founder')->findOrFail($id);
         //where('status', 'published')->findOrFail($id);
         \Log::info('Pitch deck found:', [
@@ -487,18 +499,18 @@ class PitchDeckController extends Controller
         \Log::info('Attempting to download file as: ' . $downloadFileName);
         
         return Storage::disk('public')->download($pitchDeck->file_path, $downloadFileName);
-        
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        \Log::error('Pitch deck not found with ID: ' . $id);
-        return response()->json(['message' => 'Pitch deck not found'], 404);
-    } catch (\Exception $e) {
-        \Log::error('Download failed: ' . $e->getMessage());
-        \Log::error('Error trace: ' . $e->getTraceAsString());
-        
-        return response()->json([
-            'error' => 'Download failed',
-            'message' => $e->getMessage()
-        ], 500);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            \Log::error('Pitch deck not found with ID: ' . $id);
+            return response()->json(['message' => 'Pitch deck not found'], 404);
+        } catch (\Exception $e) {
+            \Log::error('Download failed: ' . $e->getMessage());
+            \Log::error('Error trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'error' => 'Download failed',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
-}
 }

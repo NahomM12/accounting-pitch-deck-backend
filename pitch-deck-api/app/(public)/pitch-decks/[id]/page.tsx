@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/status-badge"
+import { useRouter } from "next/navigation"
 import { getPublicPitchDeck, downloadPitchDeck } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
 import { toast } from "sonner"
@@ -31,6 +32,7 @@ export default function PitchDeckDetailPage({
   const [deck, setDeck] = useState<PitchDeck | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const router = useRouter()
 
   useEffect(() => {
     async function fetchDeck() {
@@ -58,8 +60,15 @@ export default function PitchDeckDetailPage({
       a.click()
       URL.revokeObjectURL(url)
       toast.success("Download started!")
-    } catch {
-      toast.error("Download failed. You may need to sign in.")
+    } catch (err) {
+      const error = err as Error & { data?: { message?: string; error?: string } }
+      const message = error?.data?.message || error?.data?.error || error.message
+      if (message === "Unauthorized" || message === "Unauthenticated.") {
+        toast.error("Please log in as an investor to download this pitch deck.")
+        router.push(`/login?redirect=/pitch-decks/${deck.id}`)
+      } else {
+        toast.error("Download failed. Please try again later.")
+      }
     } finally {
       setDownloading(false)
     }
