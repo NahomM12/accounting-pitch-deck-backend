@@ -11,6 +11,8 @@ use App\Models\AdminActivity;
 use App\Models\PitchDeckDownload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Redis;
 
 Route::middleware('throttle:api')->group(function () {
 
@@ -83,4 +85,19 @@ Route::middleware('throttle:api')->group(function () {
         Route::delete('/pitch-decks/{pitchDeck}/thumbnail', [ThumbnailController::class, 'delete']);
         Route::middleware('admin')->post('/thumbnails/bulk-convert', [ThumbnailController::class, 'bulkConvert']);
     });
+    Route::get('/test-redis', function () {
+    // Test basic cache
+    Cache::put('test_key', 'Redis is working!', 60);
+    $cachedValue = Cache::get('test_key');
+    
+    // Test Redis facade
+    Redis::set('test_redis', 'Direct Redis access works!');
+    $redisValue = Redis::get('test_redis');
+    
+    return response()->json([
+        'cache_facade' => $cachedValue,
+        'redis_facade' => $redisValue,
+        'status' => 'Redis is configured correctly'
+    ]);
+});
 });

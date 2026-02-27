@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 //use Debugbar;
 
 class FounderController extends Controller
@@ -16,12 +18,32 @@ class FounderController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        \Log::info('=== FounderController::index() Called ===', [
-            'query' => $request->query(),
-        ]);
+   public function index(Request $request)
+{
+     $startTime = microtime(true);
+    Log::info('=== FounderController::index() Called ===', [
+        'query' => $request->query(),
+    ]);
 
+    // Create a unique cache key based on ALL request parameters
+    // This ensures different filters get different cached results
+    $cacheKey = 'founders:' . md5(json_encode($request->query()));
+    
+    // Set cache duration (in seconds) - adjust based on your needs
+    // 1800 seconds = 30 minutes
+    // $cacheDuration = 1800;
+    
+    // // Use Cache::remember to either retrieve cached data or store new data
+    // $founders = Cache::remember($cacheKey, $cacheDuration, function () use ($request) {
+        
+    //     Log::info('Cache MISS - executing database query for founders');
+
+         // Flexible cache: fresh for 5 minutes, stale for 10 more minutes
+    // During stale period, old data is served while refreshing in background
+    $founders = Cache::flexible($cacheKey, [300, 600], function () use ($request) {
+        
+        \Log::info('Cache refresh in background - executing query');
+        
         $query = Founders::query();
 
         if ($request->filled('company_name')) {
@@ -63,6 +85,7 @@ class FounderController extends Controller
         if ($request->filled('description')) {
             $query->where('description', 'like', '%' . $request->input('description') . '%');
         }
+
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
@@ -103,16 +126,17 @@ class FounderController extends Controller
 
         $sortDirection = strtolower($request->input('sort_direction', 'desc')) === 'asc' ? 'asc' : 'desc';
 
-        $founders = $query->orderBy($sortBy, $sortDirection)->get();
+        return $query->orderBy($sortBy, $sortDirection)->get();
+    });
 
-        \Log::info('FounderController::index() result', [
-            'count' => $founders->count(),
-            'sort_by' => $sortBy,
-            'sort_direction' => $sortDirection,
-        ]);
+    Log::info('FounderController::index() result', [
+        'count' => $founders->count(),
+        'cache_key' => $cacheKey,
+        'cache_hit' => Cache::has($cacheKey) ? 'HIT' : 'MISS'
+    ]);
 
-        return response()->json($founders);
-    }
+    return response()->json($founders);
+}
     /**
      * Store a newly created resource in storage.
      */
@@ -215,7 +239,9 @@ class FounderController extends Controller
         } catch (\Throwable $e) {
             \Log::warning('Failed to log admin activity for founder create: ' . $e->getMessage());
         }
-
+        // Clear cache for the new founder
+        //Cache::forget("founder_{$founder->id}");
+        Cache::flush();
         return response()->json([
             'message' => 'Founder profile and pitch deck created successfully',
             'founder' => $founder,
@@ -300,4 +326,26 @@ class FounderController extends Controller
 
         return response()->json(null, 204);
     }
+    public function sectorAnalytics()
+{
+    $cacheKey = 'sector_analytics';
+    
+    $analytics = Cache::flexible($cacheKey, [3600, 7200], function () {
+        return [
+            'by_sector' => Founders::select('sector', \DB::raw('count(*) as total'))
+                ->groupBy('sector')
+                ->orderBy('total', 'desc')
+                ->get(),
+            'avg_funding_by_sector' => Founders::select('sector', \DB::raw('AVG(funding_amount) as avg_funding'))
+                ->whereNotNull('funding_amount')
+                ->groupBy('sector')
+                ->get(),
+            'funding_stage_distribution' => Founders::select('funding_stage', \DB::raw('count(*) as total'))
+                ->groupBy('funding_stage')
+                ->get(),
+        ];
+    });
+    
+    return response()->json($analytics);
+}
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class Founders extends Model
 {
@@ -31,4 +32,16 @@ class Founders extends Model
     {
         return $this->hasMany(PitchDeck::class,'founder_id');
     }
+    protected static function booted()
+{
+    static::saved(function () {
+        Cache::flush(); // Simple but effective - clears ALL cache
+        // OR more targeted approach:
+        // Cache::tags(['founders'])->flush(); // If using tags
+    });
+    
+    static::deleted(function () {
+        Cache::flush();
+    });
+}
 }

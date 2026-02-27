@@ -143,15 +143,25 @@ class ThumbnailController extends Controller
     /**
      * Generate thumbnail URL (helper method).
      */
-    private function getThumbnailUrl(PitchDeck $pitchDeck)
-    {
+  public function getThumbnailUrl(PitchDeck $pitchDeck)
+{
+    $cacheKey = "thumbnail_url_{$pitchDeck->id}";
+    
+    return Cache::remember($cacheKey, 604800, function () use ($pitchDeck) { // 7 days
         if ($pitchDeck->thumbnail_path && Storage::disk('public')->exists($pitchDeck->thumbnail_path)) {
             return asset('storage/' . $pitchDeck->thumbnail_path);
         }
         
         // Return default thumbnail based on file type
-        return $this->getDefaultThumbnail($pitchDeck);
-    }
+        $defaults = [
+            'pdf' => asset('images/default-pdf-thumbnail.jpg'),
+            'ppt' => asset('images/default-ppt-thumbnail.jpg'),
+            'pptx' => asset('images/default-pptx-thumbnail.jpg'),
+        ];
+        
+        return $defaults[$pitchDeck->file_type] ?? asset('images/default-thumbnail.jpg');
+    });
+}
     
     /**
      * Get default thumbnail URL based on file type.

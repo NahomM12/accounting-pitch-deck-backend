@@ -12,18 +12,40 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Cache;
 
 class PitchDeckController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        $pitchDecks = PitchDeck::with('founder')
+  public function index(Request $request)
+{
+    $cacheKey = 'all_pitch_decks_' . md5(json_encode($request->query()));
+    
+    $pitchDecks = Cache::flexible($cacheKey, [300, 600], function () use ($request) {
+        return PitchDeck::with('founder')
+            ->when($request->filled('sector'), function ($query) use ($request) {
+                $query->whereHas('founder', function ($q) use ($request) {
+                    $q->where('sector', $request->sector);
+                });
+            })
+            ->orderBy($request->input('sort_by', 'created_at'), 
+                     $request->input('sort_direction', 'desc'))
             ->get();
-        return response()->json($pitchDecks);
-    }
+    });
+    
+    return response()->json($pitchDecks);
+}
+    // public function index()
+    // {
+    //     $pitchDecks = PitchDeck::with('founder')
+    //         ->get();
+    //     return response()->json($pitchDecks);
+    // }
+    
+   
+
 
     /**
      * Store a newly created resource in storage.
@@ -229,13 +251,16 @@ class PitchDeckController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
-    {
-        $pitchDeck = PitchDeck::with('founder')
-            ->findOrFail($id);
-        return response()->json($pitchDeck);
-    }
-
+   public function show($id)
+{
+    $cacheKey = "pitch_deck_{$id}";
+    
+    $pitchDeck = Cache::remember($cacheKey, 3600, function () use ($id) {
+        return PitchDeck::with('founder')->findOrFail($id);
+    });
+    
+    return response()->json($pitchDeck);
+}
     /**
      * Public listing of published pitch decks.
      */

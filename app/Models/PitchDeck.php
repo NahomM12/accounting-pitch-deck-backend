@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
+
+
 
 class PitchDeck extends Model
 {
@@ -59,4 +62,21 @@ class PitchDeck extends Model
     {
         return $this->belongsTo(User::class);
     }
+    protected static function booted()
+{
+   static::saved(function ($pitchDeck) {
+        // Clear all pitch deck caches
+        $redis = Cache::getRedis();
+        $keys = $redis->keys('*pitch_decks*');
+        foreach ($keys as $key) {
+            Cache::forget(str_replace('laravel_cache:', '', $key));
+        }
+    });
+    
+    static::deleted(function ($pitchDeck) {
+        Cache::forget("pitch_deck_{$pitchDeck->id}");
+        Cache::forget("thumbnail_url_{$pitchDeck->id}");
+        Cache::flush();
+    });
+}
 }
