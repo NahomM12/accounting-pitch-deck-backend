@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { Loader2, Clock, Plus, Trash2 } from "lucide-react"
+import { Loader2, Clock, Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -37,6 +37,19 @@ import {
   getAvailability,
   getAppointments,
 } from "@/lib/api"
+import { 
+  format, 
+  addMonths, 
+  subMonths, 
+  startOfMonth, 
+  endOfMonth, 
+  eachDayOfInterval, 
+  isSameMonth,
+  isSameDay,
+  getDay,
+  startOfWeek,
+  endOfWeek
+} from "date-fns"
 
 const DAYS: { value: AvailabilitySlot["day_of_week"]; label: string }[] = [
   { value: "monday", label: "Monday" },
@@ -68,7 +81,8 @@ function timeToMinutes(time: string) {
 }
 
 export default function AdminAppointmentsPage() {
-  const [day, setDay] = useState<AvailabilitySlot["day_of_week"]>("monday")
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [slots, setSlots] = useState<AvailabilitySlot[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
@@ -80,11 +94,45 @@ export default function AdminAppointmentsPage() {
   const [booked, setBooked] = useState<Appointment[]>([])
   const [bookedLoading, setBookedLoading] = useState(true)
 
+  // Get the day of week from selected date
+  const selectedDayOfWeek = useMemo(() => {
+    const dayMap: { [key: string]: AvailabilitySlot["day_of_week"] } = {
+      'Monday': 'monday',
+      'Tuesday': 'tuesday',
+      'Wednesday': 'wednesday',
+      'Thursday': 'thursday',
+      'Friday': 'friday',
+      'Saturday': 'saturday',
+      'Sunday': 'sunday'
+    }
+    const dayName = format(selectedDate, 'EEEE')
+    return dayMap[dayName]
+  }, [selectedDate])
+
+  // Get all days to display in the month calendar
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(currentMonth)
+    const monthEnd = endOfMonth(currentMonth)
+    const startDate = startOfWeek(monthStart, { weekStartsOn: 1 }) // Start from Monday
+    const endDate = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    
+    return eachDayOfInterval({ start: startDate, end: endDate })
+  }, [currentMonth])
+
+  // Group days into weeks for easier rendering
+  const weeks = useMemo(() => {
+    const weeksArray = []
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      weeksArray.push(calendarDays.slice(i, i + 7))
+    }
+    return weeksArray
+  }, [calendarDays])
+
   useEffect(() => {
     async function fetchAvailability() {
       try {
         setLoading(true)
-        const data = await getAvailability(day)
+        const data = await getAvailability()
         setSlots(data)
       } catch {
         setSlots([])
@@ -93,7 +141,7 @@ export default function AdminAppointmentsPage() {
       }
     }
     fetchAvailability()
-  }, [day])
+  }, [])
 
   useEffect(() => {
     async function fetchBooked() {
@@ -126,7 +174,8 @@ export default function AdminAppointmentsPage() {
   const busySegments = useMemo(() => {
     const total = DAY_END_MINUTES - DAY_START_MINUTES
     if (total <= 0) return []
-    return slots
+    const daySlots = slots.filter(slot => slot.day_of_week === selectedDayOfWeek)
+    return daySlots
       .map((slot) => {
         const start = Math.max(DAY_START_MINUTES, timeToMinutes(slot.start_time))
         const end = Math.min(DAY_END_MINUTES, timeToMinutes(slot.end_time))
@@ -136,7 +185,20 @@ export default function AdminAppointmentsPage() {
         return { left, width }
       })
       .filter(Boolean) as { left: number; width: number }[]
-  }, [slots])
+  }, [slots, selectedDayOfWeek])
+
+  // Get slots for a specific day of week
+  const getSlotsForDayOfWeek = (dayOfWeek: AvailabilitySlot["day_of_week"]) => {
+    return slots.filter(slot => slot.day_of_week === dayOfWeek)
+  }
+
+  // Count appointments for a specific day
+  const getAppointmentsForDay = (date: Date) => {
+    return booked.filter(appt => {
+      const apptDate = new Date(appt.scheduled_at)
+      return isSameDay(apptDate, date)
+    })
+  }
 
   async function handleCreateSlot(e: React.FormEvent) {
     e.preventDefault()
@@ -147,7 +209,7 @@ export default function AdminAppointmentsPage() {
     setCreating(true)
     try {
       const payload = {
-        day_of_week: day,
+        day_of_week: selectedDayOfWeek,
         start_time: minutesToLabel(startMinutes),
         end_time: minutesToLabel(endMinutes),
         increment_minutes: increment,
@@ -156,7 +218,7 @@ export default function AdminAppointmentsPage() {
       setSlots((prev) =>
         [...prev, slot].sort((a, b) => a.start_time.localeCompare(b.start_time)),
       )
-      toast.success("Availability added")
+      toast.success(`Availability added for ${format(selectedDate, 'EEEE, MMMM d')}`)
     } catch (err) {
       const error = err as Error & { data?: unknown }
       toast.error(error.message || "Failed to create slot")
@@ -175,6 +237,9 @@ export default function AdminAppointmentsPage() {
     }
   }
 
+  // Get weekday labels
+  const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
   return (
     <div>
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -188,34 +253,128 @@ export default function AdminAppointmentsPage() {
         </div>
       </div>
 
+      {/* Month Calendar View */}
+      <div className="mt-6 rounded-xl border bg-card p-6">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-serif text-lg font-bold">
+            {format(currentMonth, 'MMMM yyyy')}
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentMonth(new Date())}
+            >
+              Today
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Weekday headers */}
+        <div className="grid grid-cols-7 gap-2 mb-2">
+          {weekdayLabels.map((day) => (
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar grid */}
+        <div className="space-y-2">
+          {weeks.map((week, weekIndex) => (
+            <div key={weekIndex} className="grid grid-cols-7 gap-2">
+              {week.map((day) => {
+                const dayOfWeek = format(day, 'EEEE').toLowerCase() as AvailabilitySlot["day_of_week"]
+                const daySlots = getSlotsForDayOfWeek(dayOfWeek)
+                const dayAppointments = getAppointmentsForDay(day)
+                const isCurrentMonth = isSameMonth(day, currentMonth)
+                const isSelected = isSameDay(day, selectedDate)
+                const isToday = isSameDay(day, new Date())
+                
+                return (
+                  <button
+                    key={day.toISOString()}
+                    onClick={() => isCurrentMonth && setSelectedDate(day)}
+                    className={`
+                      p-3 rounded-lg border transition-all min-h-[100px] text-left
+                      ${isSelected 
+                        ? 'border-primary bg-primary/5 ring-2 ring-primary/20' 
+                        : 'hover:border-muted-foreground/25'
+                      }
+                      ${!isCurrentMonth && 'opacity-50 bg-muted/50'}
+                      ${isToday && !isSelected && 'border-primary/50 bg-primary/5'}
+                    `}
+                    disabled={!isCurrentMonth}
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className={`
+                        text-sm font-semibold
+                        ${isToday ? 'text-primary' : ''}
+                      `}>
+                        {format(day, 'd')}
+                      </p>
+                      {dayAppointments.length > 0 && (
+                        <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">
+                          {dayAppointments.length} booked
+                        </span>
+                      )}
+                    </div>
+                    
+                    {isCurrentMonth && daySlots.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-[10px] text-green-600 font-medium">
+                          {daySlots.length} slot{daySlots.length !== 1 ? 's' : ''}
+                        </p>
+                        <div className="space-y-1">
+                          {daySlots.slice(0, 2).map((slot) => (
+                            <div key={slot.id} className="text-[8px] text-muted-foreground bg-muted px-1 py-0.5 rounded">
+                              {slot.start_time.slice(0, 5)}-{slot.end_time.slice(0, 5)}
+                            </div>
+                          ))}
+                          {daySlots.length > 2 && (
+                            <div className="text-[8px] text-muted-foreground">
+                              +{daySlots.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-6 lg:grid-cols-[2fr,3fr]">
         <div className="rounded-xl border bg-card p-4">
           <h2 className="mb-4 flex items-center gap-2 font-serif text-base font-bold">
             <Clock className="size-4" />
-            Define Availability
+            Add Availability for {format(selectedDate, 'EEEE, MMMM d')}
           </h2>
           <form onSubmit={handleCreateSlot} className="space-y-4">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">
-                Day of week
+                Selected Day
               </label>
-              <Select
-                value={day}
-                onValueChange={(value) =>
-                  setDay(value as AvailabilitySlot["day_of_week"])
-                }
-              >
-                <SelectTrigger className="h-9">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAYS.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>
-                      {d.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="h-9 px-3 py-2 rounded-md border bg-muted text-sm">
+                {format(selectedDate, 'EEEE, MMMM d, yyyy')}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -286,7 +445,7 @@ export default function AdminAppointmentsPage() {
               ) : (
                 <>
                   <Plus className="mr-1 size-4" />
-                  Add Slot
+                  Add Slot for {format(selectedDate, 'MMM d')}
                 </>
               )}
             </Button>
@@ -294,18 +453,23 @@ export default function AdminAppointmentsPage() {
         </div>
 
         <div className="rounded-xl border bg-card">
+          <div className="p-4 border-b">
+            <h3 className="font-serif font-semibold">
+              Availability for {format(selectedDate, 'EEEE, MMMM d')}
+            </h3>
+          </div>
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="size-8 animate-spin text-primary" />
             </div>
-          ) : slots.length === 0 ? (
+          ) : slots.filter(s => s.day_of_week === selectedDayOfWeek).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <Clock className="mb-4 size-10 text-muted-foreground/40" />
               <h3 className="font-serif font-bold text-foreground">
                 No availability for this day
               </h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Define one or more time ranges investors can book.
+                Add a time range using the form.
               </p>
             </div>
           ) : (
@@ -319,58 +483,61 @@ export default function AdminAppointmentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {slots.map((slot) => (
-                    <TableRow key={slot.id}>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {slot.start_time.slice(0, 5)} –{" "}
-                        {slot.end_time.slice(0, 5)}
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        Every {slot.increment_minutes} min
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-end gap-1">
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="size-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>
-                                  Delete this availability?
-                                </AlertDialogTitle>
-                              </AlertDialogHeader>
-                              <p className="text-sm text-muted-foreground">
-                                This will remove the time range from the
-                                schedule. Existing bookings are not affected.
-                              </p>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteSlot(slot.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  {slots
+                    .filter(slot => slot.day_of_week === selectedDayOfWeek)
+                    .map((slot) => (
+                      <TableRow key={slot.id}>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {slot.start_time.slice(0, 5)} –{" "}
+                          {slot.end_time.slice(0, 5)}
+                        </TableCell>
+                        <TableCell className="text-xs">
+                          Every {slot.increment_minutes} min
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-end gap-1">
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  className="text-destructive hover:text-destructive"
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                                  <Trash2 className="size-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    Delete this availability?
+                                  </AlertDialogTitle>
+                                </AlertDialogHeader>
+                                <p className="text-sm text-muted-foreground">
+                                  This will remove the time range from the
+                                  schedule. Existing bookings are not affected.
+                                </p>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDeleteSlot(slot.id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </div>
           )}
         </div>
       </div>
+
       <div className="mt-6 rounded-xl border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
           <div>
@@ -394,7 +561,7 @@ export default function AdminAppointmentsPage() {
           <div className="max-h-80 space-y-3 overflow-y-auto pr-2">
             {booked.map((appt) => {
               const date = new Date(appt.scheduled_at)
-              const timeLabel = date.toLocaleString()
+              const timeLabel = format(date, 'EEEE, MMMM d, yyyy • h:mm a')
               const investor = appt.investor_user
               return (
                 <div
@@ -428,4 +595,3 @@ export default function AdminAppointmentsPage() {
     </div>
   )
 }
-
