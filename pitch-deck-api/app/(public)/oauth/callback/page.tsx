@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 import { TrendingUp } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+
 export default function OAuthCallbackPage() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
