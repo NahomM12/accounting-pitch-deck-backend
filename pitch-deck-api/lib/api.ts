@@ -73,6 +73,18 @@ export async function login(email: string, password: string): Promise<LoginRespo
   })
 }
 
+// OAuth functions
+export async function oauthLogin(provider: string, accessToken: string): Promise<LoginResponse> {
+  return request<LoginResponse>(`/oauth/${provider}/login`, {
+    method: "POST",
+    body: JSON.stringify({ access_token: accessToken }),
+  })
+}
+
+export function getOAuthRedirectUrl(provider: string): string {
+  return `${API_BASE_URL}/oauth/${provider}/redirect`
+}
+
 export async function adminRegister(data: {
   name: string
   email: string

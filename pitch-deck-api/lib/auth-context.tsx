@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import type { User, LoginResponse } from "./types"
-import { login as apiLogin } from "./api"
+import { login as apiLogin, oauthLogin } from "./api"
 
 interface AuthContextType {
   user: User | null
@@ -11,6 +11,7 @@ interface AuthContextType {
   isAdmin: boolean
   isSuperAdmin: boolean
   login: (email: string, password: string) => Promise<User>
+  oauthLogin: (provider: string, accessToken: string) => Promise<User>
   logout: () => void
 }
 
@@ -56,6 +57,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user
   }, [])
 
+  const handleOAuthLogin = useCallback(async (provider: string, accessToken: string) => {
+    const response: LoginResponse = await oauthLogin(provider, accessToken)
+    setUser(response.user)
+    setToken(response.access_token)
+
+    const maxAge = 60 * 60 * 24 * 7
+    document.cookie = `auth_token=${response.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
+    document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(response.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+
+    return response.user
+  }, [])
+
   const logout = useCallback(() => {
     setUser(null)
     setToken(null)
@@ -68,7 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, isAdmin, isSuperAdmin, login, logout }}
+      value={{ user, token, isLoading, isAdmin, isSuperAdmin, login, oauthLogin: handleOAuthLogin, logout }}
     >
       {children}
     </AuthContext.Provider>

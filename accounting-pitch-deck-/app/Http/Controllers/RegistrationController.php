@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Facades\Log;
+use Laravel\Socialite\Facades\Socialite;
 
 class RegistrationController extends Controller
 {
@@ -112,5 +113,107 @@ class RegistrationController extends Controller
             'access_token' => $token,
             'token_type' => 'Bearer',
         ], 201);
+    }
+
+    /**
+     * Redirect to OAuth provider.
+     */
+    public function redirectToProvider($provider)
+    {
+        return Socialite::driver($provider)->stateless()->redirect();
+    }
+
+    /**
+     * Handle OAuth provider callback.
+     */
+    public function handleProviderCallback($provider)
+    {
+        try {
+            $oauthUser = Socialite::driver($provider)->stateless()->user();
+            
+            // Find or create user
+            $user = User::where('email', $oauthUser->getEmail())->first();
+            
+            if (!$user) {
+                // Create new user for OAuth signup
+                $user = User::create([
+                    'name' => $oauthUser->getName() ?? $oauthUser->getNickname(),
+                    'email' => $oauthUser->getEmail(),
+                    'password' => Hash::make(uniqid()), // Random password
+                    'role' => 'investors', // Default role for OAuth users
+                    'oauth_provider' => $provider,
+                    'oauth_id' => $oauthUser->getId(),
+                ]);
+            } else {
+                // Update OAuth info for existing user
+                $user->update([
+                    'oauth_provider' => $provider,
+                    'oauth_id' => $oauthUser->getId(),
+                ]);
+            }
+
+            // Create token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            // Redirect to frontend with token in query params
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            $redirectUrl = $frontendUrl . '/oauth/callback?' . http_build_query([
+                'access_token' => $token,
+                'user' => json_encode($user),
+                'provider' => $provider
+            ]);
+
+            return redirect($redirectUrl);
+
+        } catch (\Exception $e) {
+            Log::error('OAuth callback error: ' . $e->getMessage());
+            $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+            return redirect($frontendUrl . '/login?error=oauth_failed');
+        }
+    }
+
+    /**
+     * OAuth login for existing users.
+     */
+    public function oauthLogin(Request $request, $provider)
+    {
+        $validator = Validator::make($request->all(), [
+            'access_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        try {
+            // Get user info from OAuth provider using access token
+            $oauthUser = Socialite::driver($provider)->stateless()->userFromToken($request->access_token);
+            
+            // Find user by email
+            $user = User::where('email', $oauthUser->getEmail())->first();
+            
+            if (!$user) {
+                return response()->json(['error' => 'No account found with this email. Please sign up first.'], 404);
+            }
+
+            // Update OAuth info
+            $user->update([
+                'oauth_provider' => $provider,
+                'oauth_id' => $oauthUser->getId(),
+            ]);
+
+            // Create token
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('OAuth login error: ' . $e->getMessage());
+            return response()->json(['error' => 'OAuth authentication failed'], 401);
+        }
     }
 }
