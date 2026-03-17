@@ -1,13 +1,22 @@
 import { HeroSection } from "@/components/landing/hero-section"
-import { FeaturesSection } from "@/components/landing/features-section"
-import { CTASection } from "@/components/landing/cta-section"
+import { About } from "@/components/about"
+import { Services } from "@/components/services"
+import { Partners } from "@/components/partners"
+import { Team } from "@/components/team"
+import { Contact } from "@/components/contact"
+import { Footer } from "@/components/footer"
+import { CursorGlow } from "@/components/cursor-glow"
 
 export default function HomePage() {
   return (
     <>
+      <CursorGlow />
       <HeroSection />
-      <FeaturesSection />
-      <CTASection />
+      <About />
+      <Services />
+      <Partners />
+      <Team />
+      <Contact />
     </>
   )
 }

@@ -124,3 +124,87 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Bento card styles for cursor glow effects */
+.bento-card {
+  @apply relative bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-2xl p-6 transition-all duration-300;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.bento-card::before {
+  content: '';
+  @apply absolute inset-0 rounded-2xl opacity-0 transition-opacity duration-300 pointer-events-none;
+  background: radial-gradient(
+    circle 800px at var(--glow-x, 0) var(--glow-y, 0),
+    rgba(233, 180, 73, 0.1),
+    transparent 40%
+  );
+  opacity: var(--glow-opacity, 0);
+}
+
+.bento-title {
+  @apply text-foreground font-bold;
+}
+
+.bento-text {
+  @apply text-muted-foreground;
+}
+
+.bento-bullet {
+  @apply bg-primary dark:bg-secondary;
+}
+
+.bento-notch {
+  @apply absolute -top-2 -right-2 w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-lg;
+  box-shadow: 0 4px 12px rgba(233, 180, 73, 0.3);
+}
+
+.bento-notch-icon {
+  @apply text-white;
+}
+
+.cursor-glow-target {
+  @apply relative transition-all duration-300;
+}
+
+.cursor-glow-target::before {
+  content: '';
+  @apply absolute inset-0 opacity-0 transition-opacity duration-300 pointer-events-none;
+  background: radial-gradient(
+    circle 400px at var(--glow-x, 0) var(--glow-y, 0),
+    rgba(233, 180, 73, 0.15),
+    transparent 40%
+  );
+  opacity: var(--glow-opacity, 0);
+}
+
+/* Marquee animation for partners section */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.marquee-mask {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 10%,
+    black 90%,
+    transparent 100%
+  );
+}

@@ -64,23 +64,46 @@ export default function PitchDecksPage() {
   return (
     <div>
       {/* Header */}
-      <section className="bg-primary py-12 lg:py-16">
-        <div className="mx-auto max-w-7xl px-4 lg:px-8">
-          <h1 className="font-serif text-3xl font-extrabold text-primary-foreground md:text-4xl text-balance">
-            Browse Pitch Decks
-          </h1>
-          <p className="mt-3 max-w-xl text-primary-foreground/80">
-            Explore curated pitch decks from innovative startups across Ethiopia.
-          </p>
-          <div className="mt-6 flex max-w-lg gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search by title, company, sector..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-primary-foreground/10 border-primary-foreground/20 pl-9 text-primary-foreground placeholder:text-primary-foreground/50"
-              />
+      <section className="relative overflow-hidden bg-[#0a0a0a]">
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0a0a0a]/60" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/30 via-transparent to-[#0a0a0a]/30" />
+          
+          {/* Additional Dark Overlay for text contrast */}
+          <div className="absolute inset-0 bg-black/20" />
+        </div>
+
+        {/* Central Glow/Halo Layer */}
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div
+            className="w-[800px] h-[800px] rounded-full blur-[140px] bg-[radial-gradient(circle,_rgba(233,180,73,0.4)_0%,_rgba(74,123,167,0.2)_40%,_transparent_70%)] opacity-80"
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 relative z-20 w-full">
+          <div className="flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 w-full py-20">
+            <div className="lg:w-[55%] text-center lg:text-left z-20 xl:pl-8">
+              <h1 className="text-5xl lg:text-7xl xl:text-[5.5rem] font-bold leading-[1.1] text-white tracking-tight">
+                Browse Pitch Decks
+              </h1>
+              <p className="text-lg lg:text-xl max-w-2xl mx-auto lg:mx-0 text-gray-300">
+                Explore curated pitch decks from innovative startups across Ethiopia.
+              </p>
+            </div>
+
+            <div className="hidden lg:flex lg:w-[45%] justify-center items-center z-10 relative">
+              <div className="w-full max-w-[600px] h-auto flex items-center justify-center relative translate-x-8">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/60" />
+                  <Input
+                    placeholder="Search by title, company, sector..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-white/10 dark:bg-black/20 border border-white/20 dark:border-white/10 pl-9 text-white dark:text-white placeholder:text-gray-400"
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>
