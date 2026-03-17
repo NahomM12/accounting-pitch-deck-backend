@@ -12,8 +12,8 @@ import type {
 } from "./types"
 
 export const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test/api"
-
+ // process.env.NEXT_PUBLIC_API_URL || "http://ascend-finance.test/api"
+ process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test/api"
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/?$/, "")
 }

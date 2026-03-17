@@ -100,7 +100,7 @@ export function Navbar() {
                 </Link>
                 <Link href="/login" className="hidden md:block">
                   <button className="px-6 py-2 bg-gradient-to-r from-[#5b8ab5] to-[#e9b449] text-white rounded-full font-semibold hover:shadow-lg hover:shadow-[#e9b449]/50 transition-all duration-300 transform hover:scale-105">
-                    Admin Login
+                    Login
                   </button>
                 </Link>
               </>
