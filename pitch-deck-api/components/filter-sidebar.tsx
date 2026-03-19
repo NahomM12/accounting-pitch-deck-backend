@@ -37,7 +37,7 @@ export function FilterSidebar({ filters, onChange, onReset }: FilterSidebarProps
       </div>
 
       {/* Search */}
-      <div className="flex flex-col gap-2">
+      {/* <div className="flex flex-col gap-2">
         <Label className="text-xs font-medium text-muted-foreground">
           Search
         </Label>
@@ -46,7 +46,7 @@ export function FilterSidebar({ filters, onChange, onReset }: FilterSidebarProps
           value={filters.search || ""}
           onChange={(e) => updateFilter("search", e.target.value)}
         />
-      </div>
+      </div> */}
 
       {/* Sector */}
       <div className="flex flex-col gap-2">

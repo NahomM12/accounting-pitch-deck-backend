@@ -12,18 +12,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->string('google_id')->nullable();
-             $table->string('oauth_provider')->nullable()->after('google_id');
-            $table->string('oauth_id')->nullable()->after('oauth_provider');
-            $table->enum('role', ['admin', 'superadmin', 'investors'])->default('investors');
-            $table->rememberToken();
-            $table->timestamps();
-        });
+        $table->id();
+        $table->string('name');
+        $table->string('email')->unique();
+        $table->timestamp('email_verified_at')->nullable();
+        $table->string('password');
+        $table->string('google_id')->nullable();
+        $table->string('oauth_provider')->nullable();  
+        $table->string('oauth_id')->nullable();    
+        $table->enum('role', ['admin', 'superadmin', 'investors'])->default('investors');
+        $table->rememberToken();
+        $table->timestamps();
+    });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

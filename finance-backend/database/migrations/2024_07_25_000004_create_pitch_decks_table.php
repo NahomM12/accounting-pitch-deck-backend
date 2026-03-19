@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
 
-            $table->unique('founder_id');
+            
         });
     }
 
