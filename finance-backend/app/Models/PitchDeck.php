@@ -65,18 +65,44 @@ class PitchDeck extends Model
     protected static function booted()
 {
    static::saved(function ($pitchDeck) {
-        // Clear all pitch deck caches
-        $redis = Cache::getRedis();
-        $keys = $redis->keys('*pitch_decks*');
-        foreach ($keys as $key) {
-            Cache::forget(str_replace('laravel_cache:', '', $key));
+        // Only clear PUBLIC caches (for investors/users)
+        try {
+            Cache::forget("public_pitch_deck_{$pitchDeck->id}");
+            
+            $redis = Cache::getRedis();
+            $keys = $redis->keys('*public_pitch_decks*');
+            
+            foreach ($keys as $key) {
+                $cacheKey = str_replace('laravel_cache:', '', $key);
+                $cacheKey = str_replace(config('cache.prefix').':', '', $cacheKey);
+                Cache::forget($cacheKey);
+            }
+            
+            \Log::info('Public pitch deck cache cleared on save', [
+                'pitch_deck_id' => $pitchDeck->id,
+                'keys_cleared' => count($keys)
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::warning('Public cache clear failed: ' . $e->getMessage());
         }
     });
     
     static::deleted(function ($pitchDeck) {
-        Cache::forget("pitch_deck_{$pitchDeck->id}");
-        Cache::forget("thumbnail_url_{$pitchDeck->id}");
-        Cache::flush();
+        // Clear public caches
+        try {
+            Cache::forget("public_pitch_deck_{$pitchDeck->id}");
+            
+            $redis = Cache::getRedis();
+            $keys = $redis->keys('*public_pitch_decks*');
+            
+            foreach ($keys as $key) {
+                $cacheKey = str_replace('laravel_cache:', '', $key);
+                Cache::forget($cacheKey);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Public cache clear failed on delete: ' . $e->getMessage());
+        }
     });
 }
 }

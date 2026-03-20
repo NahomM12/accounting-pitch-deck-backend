@@ -21,19 +21,15 @@ class PitchDeckController extends Controller
      */
   public function index(Request $request)
 {
-    $cacheKey = 'all_pitch_decks_' . md5(json_encode($request->query()));
-    
-    $pitchDecks = Cache::flexible($cacheKey, [300, 600], function () use ($request) {
-        return PitchDeck::with('founder')
-            ->when($request->filled('sector'), function ($query) use ($request) {
-                $query->whereHas('founder', function ($q) use ($request) {
-                    $q->where('sector', $request->sector);
-                });
-            })
-            ->orderBy($request->input('sort_by', 'created_at'), 
-                     $request->input('sort_direction', 'desc'))
-            ->get();
-    });
+    $pitchDecks = PitchDeck::with('founder')
+        ->when($request->filled('sector'), function ($query) use ($request) {
+            $query->whereHas('founder', function ($q) use ($request) {
+                $q->where('sector', $request->sector);
+            });
+        })
+        ->orderBy($request->input('sort_by', 'created_at'), 
+                 $request->input('sort_direction', 'desc'))
+        ->get();
     
     return response()->json($pitchDecks);
 }
@@ -99,8 +95,21 @@ class PitchDeckController extends Controller
 
         // Generate thumbnail
         try {
+            \Log::info('Starting thumbnail generation', [
+                'file_extension' => $extension,
+                'file_path' => $filePath
+            ]);
+            
             if (in_array($extension, ['pdf', 'ppt', 'pptx'])) {
                 $originalPath = Storage::disk('public')->path($filePath);
+                \Log::info('Original file path', ['path' => $originalPath]);
+                
+                // Check if file exists before processing
+                if (!file_exists($originalPath)) {
+                    \Log::error('Original file not found for thumbnail', ['path' => $originalPath]);
+                    throw new \Exception('File not found: ' . $originalPath);
+                }
+                
                 $image = Image::make($originalPath . '[0]');
                 $image->resize(300, 200, function ($constraint) {
                     $constraint->aspectRatio();
@@ -108,12 +117,31 @@ class PitchDeckController extends Controller
                 });
                 $thumbnailFileName = 'thumbnail_' . $pitchDeck->id . '_' . time() . '.webp';
                 $thumbnailPath = 'pitch_decks/thumbnails/' . $thumbnailFileName;
+                
+                \Log::info('Saving thumbnail', ['thumbnail_path' => $thumbnailPath]);
                 Storage::disk('public')->put($thumbnailPath, $image->encode('webp', 85));
+                
+                // Verify thumbnail was created
+                $fullThumbnailPath = Storage::disk('public')->path($thumbnailPath);
+                \Log::info('Thumbnail saved', ['full_path' => $fullThumbnailPath, 'exists' => file_exists($fullThumbnailPath)]);
+                
                 $pitchDeck->thumbnail_path = $thumbnailPath;
                 $pitchDeck->save();
+                
+                \Log::info('Thumbnail generated successfully', [
+                    'pitch_deck_id' => $pitchDeck->id,
+                    'thumbnail_path' => $thumbnailPath
+                ]);
+            } else {
+                \Log::info('Skipping thumbnail generation for unsupported file type', ['extension' => $extension]);
             }
         } catch (\Throwable $e) {
-            \Log::warning('Failed to generate thumbnail: ' . $e->getMessage());
+            \Log::error('Failed to generate thumbnail: ' . $e->getMessage(), [
+                'pitch_deck_id' => $pitchDeck->id,
+                'file_path' => $filePath,
+                'extension' => $extension,
+                'trace' => $e->getTraceAsString()
+            ]);
         }
 
         // Log activity
@@ -253,12 +281,7 @@ class PitchDeckController extends Controller
      */
    public function show($id)
 {
-    $cacheKey = "pitch_deck_{$id}";
-    
-    $pitchDeck = Cache::remember($cacheKey, 3600, function () use ($id) {
-        return PitchDeck::with('founder')->findOrFail($id);
-    });
-    
+    $pitchDeck = PitchDeck::with('founder')->findOrFail($id);
     return response()->json($pitchDeck);
 }
     /**
@@ -266,9 +289,13 @@ class PitchDeckController extends Controller
      */
     public function publicIndex()
     {
-        $pitchDecks = PitchDeck::with('founder')
-            ->where('status', 'published')
-            ->get();
+        $cacheKey = 'public_pitch_decks_' . md5(json_encode(request()->query()));
+        
+        $pitchDecks = Cache::flexible($cacheKey, [300, 600], function () {
+            return PitchDeck::with('founder')
+                ->where('status', 'published')
+                ->get();
+        });
 
         return response()->json($pitchDecks);
     }
@@ -278,9 +305,13 @@ class PitchDeckController extends Controller
      */
     public function publicShow($id)
     {
-        $pitchDeck = PitchDeck::with('founder')
-            ->where('status', 'published')
-            ->findOrFail($id);
+        $cacheKey = "public_pitch_deck_{$id}";
+        
+        $pitchDeck = Cache::remember($cacheKey, 3600, function () use ($id) {
+            return PitchDeck::with('founder')
+                ->where('status', 'published')
+                ->findOrFail($id);
+        });
 
         return response()->json($pitchDeck);
     }
@@ -305,7 +336,7 @@ class PitchDeckController extends Controller
     $validator = Validator::make($request->all(), [
         'title' => 'sometimes|required|string|max:255',
         'status' => 'sometimes|required|string|in:draft,published,archived',
-        'notes' => 'nullable|string|max:1000', // Optional notes field
+        'notes' => 'nullable|string|max:1000',
     ]);
 
     if ($validator->fails()) {
@@ -318,7 +349,7 @@ class PitchDeckController extends Controller
     
     // Update the pitch deck
     $pitchDeck->update($request->only('title', 'status'));
-
+    
     // Log admin activity for editing a pitch deck
     try {
         $this->logAdminActivity($request, 'edit_pitchdeck', 'PitchDeck', $pitchDeck->id, [

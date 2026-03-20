@@ -17,11 +17,9 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/status-badge"
 import { useRouter } from "next/navigation"
-import { getPublicPitchDeck, downloadPitchDeck } from "@/lib/api"
+import { getPublicPitchDeck, downloadPitchDeck, getApiOrigin } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
 import { toast } from "sonner"
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test"
 
 export default function PitchDeckDetailPage({
   params,
@@ -103,7 +101,7 @@ export default function PitchDeckDetailPage({
   }
 
   const thumbnailUrl = deck.thumbnail_path
-    ? `${API_BASE}/storage/${deck.thumbnail_path}`
+    ? `${getApiOrigin()}/storage/${deck.thumbnail_path}`
     : null
 
   return (

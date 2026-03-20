@@ -2,13 +2,12 @@ import Link from "next/link"
 import { FileText, MapPin, Calendar } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { getApiOrigin } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://accounting-pitch-deck-.test"
 
 export function PitchDeckCard({ deck }: { deck: PitchDeck }) {
   const thumbnailUrl = deck.thumbnail_path
-    ? `${API_BASE}/storage/${deck.thumbnail_path}`
+    ? `${getApiOrigin()}/storage/${deck.thumbnail_path}`
     : null
 
   return (
