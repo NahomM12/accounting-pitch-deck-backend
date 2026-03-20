@@ -18,6 +18,7 @@ class RateLimiterServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureApiLimiter($this->app);
+        $this->configureLoginLimiter($this->app);
         $this->configureGlobalLimiter($this->app);
     }
 
@@ -29,6 +30,16 @@ class RateLimiterServiceProvider extends ServiceProvider
 
             return [
                 Limit::perMinute(60)->by($key),
+            ];
+        });
+    }
+
+    protected function configureLoginLimiter(Application $app): void
+    {
+        RateLimiter::for('login', function (Request $request) {
+            return [
+                Limit::perMinute(5)->by('login-ip:' . $request->ip()),
+                Limit::perMinute(10)->by('login-email:' . $request->input('email')),
             ];
         });
     }

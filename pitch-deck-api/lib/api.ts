@@ -300,6 +300,10 @@ export async function getUsers(): Promise<User[]> {
   return request<User[]>("/users")
 }
 
+export async function logout(): Promise<void> {
+  return request<void>("/logout", { method: "POST" })
+}
+
 export async function deleteUser(id: number): Promise<void> {
   return request<void>(`/users/${id}`, { method: "DELETE" })
 }

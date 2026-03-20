@@ -29,6 +29,14 @@ class User extends Authenticatable
         'role',
     ];
 
+    /**
+     * API token expiration time in minutes.
+     */
+    public function accessTokenExpirationMinutes(): int
+    {
+        return 30; // 30 minutes
+    }
+
      const ROLES = [
         'admin' => 'Admin',
         'superadmin'=> 'Super Admin',

@@ -10,13 +10,14 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { cn } from "@/lib/utils"
+import router from "next/router"
 
 const publicLinks = [
   { href: "/", label: "Home" },
   { href: "/pitch-decks", label: "Pitch Decks" },
   { href: "/#services", label: "Services" },
   { href: "/#about", label: "About" },
-  { href: "/#team", label: "Team" },
+  // { href: "/#team", label: "Team" },
   { href: "/#contact", label: "Contact" },
 ]
 
@@ -148,6 +149,7 @@ export function Navbar() {
                     ? "text-primary"
                     : "text-muted-foreground"
                 )}
+                //exported next roter to fix the line on 148  router.pathname === link.href
               >
                 {link.label}
               </Link>

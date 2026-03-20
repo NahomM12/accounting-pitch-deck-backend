@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react"
 import type { User, LoginResponse } from "./types"
-import { login as apiLogin, oauthLogin } from "./api"
+import { login as apiLogin, oauthLogin, logout as apiLogout } from "./api"
 
 interface AuthContextType {
   user: User | null
@@ -69,7 +69,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user
   }, [])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      // Call backend logout to revoke tokens
+      await apiLogout()
+    } catch (error) {
+      console.error("Backend logout failed:", error)
+      // Continue with local cleanup even if backend fails
+    }
+    
+    // Always clear local state and cookies
     setUser(null)
     setToken(null)
     document.cookie = "auth_token=; path=/; max-age=0"

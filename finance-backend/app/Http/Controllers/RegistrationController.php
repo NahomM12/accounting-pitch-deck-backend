@@ -216,4 +216,24 @@ class RegistrationController extends Controller
             return response()->json(['error' => 'OAuth authentication failed'], 401);
         }
     }
+
+    /**
+     * Logout user and revoke tokens.
+     */
+    public function logout(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json(['message' => 'No authenticated user'], 401);
+        }
+
+        // Revoke all tokens for this user
+        $user->tokens()->delete();
+
+        // Invalidate the session
+        Auth::guard('web')->logout();
+
+        return response()->json(['message' => 'Successfully logged out']);
+    }
 }

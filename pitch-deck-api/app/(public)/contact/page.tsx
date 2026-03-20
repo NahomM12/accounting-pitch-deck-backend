@@ -81,7 +81,7 @@ export default function ContactPage() {
                 </div>
                 <div className="rounded-xl border bg-card p-6">
                   <h3 className="font-serif font-bold text-card-foreground">
-                    Prefer a call?
+                    Prefer in Person?
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground">
                     Investors can book a dedicated session with our team to
