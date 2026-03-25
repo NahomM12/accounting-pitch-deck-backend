@@ -4,6 +4,7 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\FounderController;
 use App\Http\Controllers\PitchDeckController;
 use App\Http\Controllers\RegistrationController;
+use App\Http\Controllers\OtpController;
 use App\Http\Controllers\ThumbnailController;
 use App\Http\Controllers\AppointmentController;
 use App\Http\Controllers\AvailabilityController;
@@ -28,6 +29,8 @@ Route::middleware('throttle:api')->group(function () {
     Route::get('/user', function (Request $request) {
         return $request->user();
     })->middleware('auth:sanctum');
+
+    Route::post('/otp/send', [OtpController::class, 'send'])->middleware('throttle:login');
 
     Route::apiResource('users', UserController::class);
     Route::apiResource('founders', FounderController::class)->middleware('auth:sanctum');
