@@ -21,9 +21,10 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+             UserSeeder::class,
             FounderSeeder::class,
             PitchDeckSeeder::class,
-            UserSeeder::class,
+           
         ]);
     }
 }

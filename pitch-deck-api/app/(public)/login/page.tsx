@@ -56,10 +56,10 @@ export default function LoginPage() {
             </span>
           </Link>
           <h1 className="mt-6 font-serif text-2xl font-extrabold text-foreground">
-            Admin Login
+             Login
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to access the admin dashboard
+            Sign in to access 
           </p>
         </div>
 

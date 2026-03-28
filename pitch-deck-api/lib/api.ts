@@ -13,7 +13,7 @@ import type {
 
 export const API_BASE_URL =
   //process.env.NEXT_PUBLIC_API_URL || "http://finance-backend.test/api"
-  process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com//api"
+  process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/?$/, "")
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { Loader2, Trash2 } from "lucide-react"
+import { Loader2, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Table,
@@ -66,6 +66,14 @@ export default function UsersManagePage() {
           <p className="text-sm text-muted-foreground">
             View and manage platform users.
           </p>
+        </div>
+        <div>
+          <Button asChild size="sm" className="font-serif font-semibold">
+            <Link href="/dashboard/admin/users/new">
+              <Plus className="mr-1 size-4" />
+              Add user
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -156,4 +164,3 @@ export default function UsersManagePage() {
     </div>
   )
 }
-
