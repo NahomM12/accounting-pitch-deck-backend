@@ -429,7 +429,72 @@ class PitchDeckController extends Controller
             'ip_address' => $request->ip(),
         ]);
     }
+  /**
+     * Secure file access endpoint for pitch decks.
+     */
+    public function accessFile(Request $request, $id)
+    {
+        // Find pitch deck
+        $pitchDeck = PitchDeck::findOrFail($id);
 
+        // // Authorization check - admins can access all, users can access their own
+        $user = $request->user();
+        if (!in_array($user->role, ['admin', 'superadmin'])) {
+            return response()->json([
+                'error' => 'Access denied',
+                'message' => 'You do not have permission to access this file'
+            ], 403);
+        }
+
+        // Check if file exists
+        if (!$pitchDeck->file_path || !Storage::disk('public')->exists($pitchDeck->file_path)) {
+            return response()->json([
+                'error' => 'File not found',
+                'message' => 'The requested file does not exist'
+            ], 404);
+        }
+
+        // Get file information
+        $filePath = Storage::disk('public')->path($pitchDeck->file_path);
+        $mimeType = $this->getMimeType($pitchDeck->file_type);
+
+        // Serve file securely
+        return response()->file($filePath, [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => $this->getContentDisposition($mimeType, $pitchDeck->title),
+            'Cache-Control' => 'private, max-age=3600',
+            'X-Content-Type-Options' => 'nosniff'
+        ]);
+    }
+
+    /**
+     * Get appropriate MIME type for file.
+     */
+    private function getMimeType($fileType)
+    {
+        $mimeTypes = [
+            'pdf' => 'application/pdf',
+            'ppt' => 'application/vnd.ms-powerpoint',
+            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        ];
+
+        return $mimeTypes[strtolower($fileType)] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Get appropriate Content-Disposition header.
+     */
+    private function getContentDisposition($mimeType, $title)
+    {
+        $safeFileName = preg_replace('/[^a-zA-Z0-9.-]/', '_', $title);
+        
+        // PDFs can be displayed inline, others should be downloaded
+        if ($mimeType === 'application/pdf') {
+            return 'inline; filename="' . $safeFileName . '.pdf"';
+        }
+        
+        return 'attachment; filename="' . $safeFileName . '.' . pathinfo($safeFileName, PATHINFO_EXTENSION) . '"';
+    }
     /**
      * Download the specified pitch deck.
      */

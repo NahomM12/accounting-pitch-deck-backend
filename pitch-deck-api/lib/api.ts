@@ -12,8 +12,8 @@ import type {
 } from "./types"
 
 export const API_BASE_URL =
-  //process.env.NEXT_PUBLIC_API_URL || "http://finance-backend.test/api"
-  process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
+process.env.NEXT_PUBLIC_API_URL || "http://finance-backends.test/api"
+//process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/?$/, "")
 }
@@ -199,6 +199,9 @@ export async function downloadPitchDeck(id: number): Promise<Blob> {
   return response.blob()
 }
 
+export async function getPitchDeckFileUrl(id: number): Promise<string> {
+  return `${getApiOrigin()}/api/pitch-decks/${id}/file`
+}
 // Thumbnails
 export async function uploadThumbnail(
   pitchDeckId: number,
@@ -307,4 +310,40 @@ export async function logout(): Promise<void> {
 
 export async function deleteUser(id: number): Promise<void> {
   return request<void>(`/users/${id}`, { method: "DELETE" })
+}
+
+export async function previewPitchDeckFile(id: number): Promise<{ blob: Blob; contentType: string | null; fileName: string }> {
+  const token = getToken()
+  const headers: HeadersInit = {
+    Accept: "application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  }
+  if (token) headers["Authorization"] = `Bearer ${token}`
+
+  const response = await fetch(`${API_BASE_URL}/pitch-decks/${id}/file`, { headers })
+  
+  if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error("Please login to view this file")
+    }
+    if (response.status === 403) {
+      throw new Error("You don't have permission to access this file")
+    }
+    if (response.status === 404) {
+      throw new Error("File not found")
+    }
+    throw new Error("Failed to load file")
+  }
+  
+  const blob = await response.blob()
+  const contentType = response.headers.get("Content-Type")
+  
+  // Try to get filename from Content-Disposition header
+  const contentDisposition = response.headers.get("Content-Disposition")
+  let fileName = `pitch-deck-${id}`
+  if (contentDisposition) {
+    const match = contentDisposition.match(/filename="?([^"]+)"?/)
+    if (match) fileName = match[1]
+  }
+  
+  return { blob, contentType, fileName }
 }

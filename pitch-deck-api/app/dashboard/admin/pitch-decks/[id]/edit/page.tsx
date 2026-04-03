@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { getPitchDeck, updatePitchDeck, updatePitchDeckFile, getApiOrigin } from "@/lib/api"
+import { getPitchDeck, updatePitchDeck, updatePitchDeckFile, getApiOrigin, previewPitchDeckFile,getPitchDeckFileUrl } from "@/lib/api"
 import { PITCH_DECK_STATUSES } from "@/lib/types"
 import type { PitchDeck } from "@/lib/types"
 import { toast } from "sonner"
@@ -33,7 +33,8 @@ export default function EditPitchDeckPage({
   const [title, setTitle] = useState("")
   const [status, setStatus] = useState("")
   const [newFile, setNewFile] = useState<File | null>(null)
-  const fileUrl = deck?.file_path ? `${getApiOrigin()}/storage/${deck.file_path}` : null
+ 
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false)
 
   useEffect(() => {
     async function fetch() {
@@ -65,45 +66,94 @@ export default function EditPitchDeckPage({
       setIsSubmitting(false)
     }
   }
-
-  async function handleFileReplace() {
-    if (!deck) return
-    if (!newFile) {
-      toast.error("Please select a file to upload")
-      return
+async function handlePreview() {
+  if (!deck) return
+  
+  setIsPreviewLoading(true)
+  
+  try {
+    const { blob, contentType, fileName } = await previewPitchDeckFile(deck.id)
+    const url = URL.createObjectURL(blob)
+    
+    // Handle based on file type
+    if (contentType === "application/pdf") {
+      // Open PDF in new tab
+      window.open(url, "_blank")
+    } else {
+      // For PPT/PPTX - download instead of preview
+      const link = document.createElement("a")
+      link.href = url
+      link.download = fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      toast.info(`${contentType?.includes("powerpoint") ? "PowerPoint" : "File"} downloaded successfully`)
     }
-    setIsReplacingFile(true)
-
-    try {
-      const data = new FormData()
-      data.append("file", newFile)
-
-      const result = await updatePitchDeckFile(deck.id, data)
-
-      setDeck((prev) =>
-        prev
-          ? {
-              ...prev,
-              file_path: result.pitch_deck.file_path,
-              file_type: result.pitch_deck.file_type,
-              status: result.pitch_deck.status,
-            }
-          : prev
-      )
-      setNewFile(null)
-      toast.success("Pitch deck file replaced successfully!")
-    } catch (err) {
-      const error = err as Error & { data?: { errors?: Record<string, string[]> } }
-      if (error.data?.errors) {
-        const msgs = Object.values(error.data.errors).flat()
-        toast.error(msgs[0] || "Validation failed")
+    
+    // Clean up blob URL after a delay
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  } catch (error) {
+    console.error("Preview failed:", error)
+    
+    if (error instanceof Error) {
+      if (error.message === "Please login to view this file") {
+        toast.error("Please login to view this file")
+        router.push("/login")
+      } else if (error.message === "You don't have permission to access this file") {
+        toast.error("You don't have permission to access this file")
+      } else if (error.message === "File not found") {
+        toast.error("The file no longer exists")
       } else {
-        toast.error("Failed to replace pitch deck file")
+        toast.error(error.message || "Failed to load file")
       }
-    } finally {
-      setIsReplacingFile(false)
+    } else {
+      toast.error("Failed to load file")
     }
+  } finally {
+    setIsPreviewLoading(false)
   }
+}
+  // async function handleFileReplace() {
+  //   if (!deck) return
+  //   if (!newFile) {
+  //     toast.error("Please select a file to upload")
+  //     return
+  //   }
+  //   setIsReplacingFile(true)
+
+  //   try {
+  //     const data = new FormData()
+  //     data.append("file", newFile)
+
+  //     const result = await updatePitchDeckFile(deck.id, data)
+
+  //     setDeck((prev) =>
+  //       prev
+  //         ? {
+  //             ...prev,
+  //             file_path: result.pitch_deck.file_path,
+  //             file_type: result.pitch_deck.file_type,
+  //             status: result.pitch_deck.status,
+  //           }
+  //         : prev
+  //     )
+  //     // Update secure file URL after file replacement
+  //     setFileUrl(await getPitchDeckFileUrl(deck.id))
+  //     setNewFile(null)
+  //     toast.success("Pitch deck file replaced successfully!")
+  //   } catch (err) {
+  //     const error = err as Error & { data?: { errors?: Record<string, string[]> } }
+  //     if (error.data?.errors) {
+  //       const msgs = Object.values(error.data.errors).flat()
+  //       toast.error(msgs[0] || "Validation failed")
+  //     } else {
+  //       toast.error("Failed to replace pitch deck file")
+  //     }
+  //   } finally {
+  //     setIsReplacingFile(false)
+  //   }
+  // }
 
   if (loading) {
     return (
@@ -181,16 +231,22 @@ export default function EditPitchDeckPage({
               {deck.founder?.company_name || "Unknown"}
             </p>
           </div>
-          {fileUrl && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => window.open(fileUrl, "_blank")}
-              className="font-serif font-semibold"
-            >
-              Preview file ({deck.file_type.toUpperCase()})
-            </Button>
-          )}
+        <Button
+  type="button"
+  variant="outline"
+  onClick={handlePreview}
+  disabled={isPreviewLoading}
+  className="font-serif font-semibold"
+>
+  {isPreviewLoading ? (
+    <>
+      <Loader2 className="mr-2 size-4 animate-spin" />
+      Loading...
+    </>
+  ) : (
+    `Preview file (${deck.file_type.toUpperCase()})`
+  )}
+</Button>
           {/* <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-4">
             <p className="text-sm font-medium text-foreground">
               Replace pitch deck file
