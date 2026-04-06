@@ -12,6 +12,7 @@ interface AuthContextType {
   isSuperAdmin: boolean
   login: (email: string, password: string) => Promise<User>
   oauthLogin: (provider: string, accessToken: string) => Promise<User>
+  completeOAuthLogin: (user: User, accessToken: string) => Promise<User>
   logout: () => void
 }
 
@@ -69,6 +70,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return response.user
   }, [])
 
+  const completeOAuthLogin = useCallback(async (userData: User, accessToken: string) => {
+    setUser(userData)
+    setToken(accessToken)
+
+    const maxAge = 60 * 60 * 24 * 7
+    document.cookie = `auth_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`
+    document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(userData))}; path=/; max-age=${maxAge}; SameSite=Lax`
+
+    return userData
+  }, [])
+
   const logout = useCallback(async () => {
     try {
       // Call backend logout to revoke tokens
@@ -90,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, isAdmin, isSuperAdmin, login, oauthLogin: handleOAuthLogin, logout }}
+      value={{ user, token, isLoading, isAdmin, isSuperAdmin, login, oauthLogin: handleOAuthLogin, completeOAuthLogin, logout }}
     >
       {children}
     </AuthContext.Provider>

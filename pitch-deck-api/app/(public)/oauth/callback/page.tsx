@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
@@ -8,11 +8,11 @@ import { TrendingUp } from "lucide-react"
 
 export const dynamic = 'force-dynamic'
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { login } = useAuth()
+  const { completeOAuthLogin } = useAuth()
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
@@ -22,6 +22,8 @@ export default function OAuthCallbackPage() {
         const provider = searchParams.get("provider")
         const error = searchParams.get("error")
 
+        console.log("🔵 OAuth Callback - Raw params:", { accessToken: !!accessToken, userStr: !!userStr, provider, error })
+
         if (error) {
           toast.error(`OAuth failed: ${error}`)
           router.push("/login")
@@ -29,22 +31,17 @@ export default function OAuthCallbackPage() {
         }
 
         if (!accessToken || !userStr) {
+          console.error("Missing token or user")
           toast.error("Missing authentication data")
           router.push("/login")
           return
         }
 
-        // Parse user data
         const user = JSON.parse(decodeURIComponent(userStr))
+        console.log("🟢 User parsed:", { id: user.id, email: user.email, role: user.role })
 
-        // Store token and user data in cookies (same as regular login)
-        const maxAge = 60 * 60 * 24 * 7
-        document.cookie = `auth_token=${accessToken}; path=/; max-age=${maxAge}; SameSite=Lax`
-        document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+        await completeOAuthLogin(user, accessToken)
 
-        // Update auth context
-        await login(user.email, "oauth-placeholder") // This won't actually login but will update the context
-        
         toast.success("Login successful!")
         
         if (user.role === "investors") {
@@ -62,7 +59,7 @@ export default function OAuthCallbackPage() {
     }
 
     handleOAuthCallback()
-  }, [searchParams, router, login])
+  }, [searchParams, router, completeOAuthLogin])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -86,5 +83,34 @@ export default function OAuthCallbackPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="w-full max-w-md text-center">
+            <div className="mb-8">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary mx-auto">
+                <TrendingUp className="size-6 text-primary-foreground" />
+              </div>
+              <h1 className="mt-6 font-serif text-2xl font-extrabold text-foreground">
+                Completing Sign In
+              </h1>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Please wait while we complete your authentication...
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </div>
+        </div>
+      }
+    >
+      <OAuthCallbackContent />
+    </Suspense>
   )
 }

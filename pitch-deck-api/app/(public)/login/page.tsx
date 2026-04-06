@@ -59,7 +59,7 @@ export default function LoginPage() {
              Login
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to access 
+            Sign in to access pitchdecks 
           </p>
         </div>
 
