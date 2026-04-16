@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { API_BASE_URL } from "@/lib/api"
+import { API_BASE_URL, verifyRegistrationOtp, verifyForgotPasswordOtp } from "@/lib/api"
 
 export default function OtpPage() {
   const [code, setCode] = useState("")
@@ -17,6 +17,7 @@ export default function OtpPage() {
   const searchParams = useSearchParams()
 
   const email = searchParams.get("email") || ""
+  const purpose = searchParams.get("purpose") || "register"
 
   async function handleResend() {
     if (!email) {
@@ -50,9 +51,40 @@ export default function OtpPage() {
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    toast.info("Verification code submitted")
+
+    if (!email) {
+      toast.error("Missing email address")
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      if (purpose === "register") {
+        const res = await verifyRegistrationOtp({ email, otp: code })
+        const maxAge = 60 * 60 * 24 * 7
+        document.cookie = `auth_token=${res.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
+        document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(res.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
+
+        toast.success("Account created successfully!")
+        if (res.user.role === "investors") {
+          router.push("/")
+        } else {
+          router.push("/dashboard/admin")
+        }
+      } else if (purpose === "reset") {
+        router.push(`/forgot-password?email=${encodeURIComponent(email)}&otp=${encodeURIComponent(code)}`)
+      } else {
+        toast.error("Unknown verification purpose")
+      }
+    } catch (err) {
+      const error = err as Error & { data?: { error?: string; message?: string } }
+      toast.error(error.data?.error || error.data?.message || error.message || "Verification failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -93,10 +125,10 @@ export default function OtpPage() {
             <Button
               type="submit"
               size="lg"
-              disabled={code.length !== 6}
+              disabled={code.length !== 6 || isLoading}
               className="font-serif font-semibold"
             >
-              Verify
+              {isLoading ? "Verifying..." : "Verify"}
             </Button>
           </form>
 
@@ -118,4 +150,3 @@ export default function OtpPage() {
     </div>
   )
 }
-

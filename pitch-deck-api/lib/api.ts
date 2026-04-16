@@ -97,6 +97,35 @@ export async function adminRegister(data: {
   })
 }
 
+export async function verifyRegistrationOtp(data: {
+  email: string
+  otp: string
+}): Promise<LoginResponse> {
+  return request<LoginResponse>("/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export async function sendForgotPasswordOtp(email: string): Promise<{ message: string }> {
+  return request<{ message: string }>("/forgot-password/send-otp", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })
+}
+
+export async function verifyForgotPasswordOtp(data: {
+  email: string
+  otp: string
+  password: string
+  password_confirmation: string
+}): Promise<{ message: string }> {
+  return request<{ message: string }>("/forgot-password/verify-otp", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
 // Founders
 export async function getFounders(filters?: FounderFilters): Promise<Founder[]> {
   const params = new URLSearchParams()

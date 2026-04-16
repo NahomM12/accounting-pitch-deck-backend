@@ -1,9 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { TrendingUp, Eye, EyeOff, AlertCircle } from "lucide-react"
+import { TrendingUp, Eye, EyeOff, AlertCircle, ArrowLeft, Sun, Moon } from "lucide-react"
+import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,11 +14,13 @@ import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { getOAuthRedirectUrl } from "@/lib/api"
 
+import Image from "next/image"
+
 // Define the error response type
 interface ValidationErrorResponse {
   message?: string
   error?: string
-  errors?: Record<string, string[]> // This matches Laravel's format: { "field": ["error message"] }
+  errors?: Record<string, string[]>
 }
 
 export default function SignupPage() {
@@ -26,6 +29,8 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { theme, setTheme, resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   
   // State for field-specific errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -33,6 +38,8 @@ export default function SignupPage() {
   const [formError, setFormError] = useState<string | null>(null)
   
   const router = useRouter()
+
+  useEffect(() => setMounted(true), [])
 
   const handleOAuthSignup = (provider: string) => {
     window.location.href = getOAuthRedirectUrl(provider)
@@ -81,19 +88,16 @@ export default function SignupPage() {
       if (!res.ok) {
         // Handle Laravel-style validation errors
         if (data.errors) {
-          // Convert Laravel errors to field-specific error messages
           const errors: Record<string, string> = {}
           
-          // Loop through each field and its array of errors
           Object.entries(data.errors).forEach(([field, messages]) => {
             if (Array.isArray(messages) && messages.length > 0) {
-              errors[field] = messages[0] // Take the first error message
+              errors[field] = messages[0]
             }
           })
           
           setFieldErrors(errors)
           
-          // Show first error in toast as well
           const firstErrorField = Object.keys(errors)[0]
           if (firstErrorField) {
             toast.error(errors[firstErrorField])
@@ -101,7 +105,6 @@ export default function SignupPage() {
             toast.error("Please check the form for errors")
           }
         } else {
-          // Handle other types of errors
           const errorMessage = data.message || data.error || "Sign up failed"
           setFormError(errorMessage)
           toast.error(errorMessage)
@@ -111,14 +114,21 @@ export default function SignupPage() {
         return
       }
 
-      // Success - store token and redirect
-      const loginData = data as LoginResponse
-      const maxAge = 60 * 60 * 24 * 7
-      document.cookie = `auth_token=${loginData.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`
-      document.cookie = `auth_user=${encodeURIComponent(JSON.stringify(loginData.user))}; path=/; max-age=${maxAge}; SameSite=Lax`
-
-      toast.success("Account created successfully!")
-      window.location.href = "/"
+      // Success - Send OTP and redirect to verification page
+      toast.success("OTP sent to your email. Please verify to complete registration.")
+      
+      // Get redirect parameter from URL if it exists
+      const params = new URLSearchParams(window.location.search)
+      const redirect = params.get('redirect')
+      
+      // Navigate to OTP page with email, purpose, and optional redirect
+      let otpUrl = `/otp?email=${encodeURIComponent(email)}&purpose=register`
+      if (redirect) {
+        otpUrl += `&redirect=${encodeURIComponent(redirect)}`
+      }
+      
+      router.push(otpUrl)
+      
     } catch (err) {
       const error = err as Error
       setFormError(error.message || "Failed to sign up")
@@ -129,26 +139,83 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-primary">
-              <TrendingUp className="size-6 text-primary-foreground" />
-            </div>
-            <span className="font-serif text-xl font-bold text-foreground">
-              Ascend
-            </span>
-          </Link>
-          <h1 className="mt-6 font-serif text-2xl font-extrabold text-foreground">
-            Investor Sign Up
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Create an account to explore and download pitch decks.
-          </p>
+    <div className="flex min-h-screen bg-background relative">
+      {/* Back to Home Button */}
+      <Link href="/" className="absolute top-6 left-6 lg:left-8 z-50 flex items-center gap-2 text-foreground/80 hover:text-foreground lg:text-white/80 lg:hover:text-white transition-colors duration-200 bg-background/50 lg:bg-black/20 hover:bg-background/80 lg:hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-border lg:border-white/10">
+        <ArrowLeft className="w-4 h-4" />
+        <span className="font-medium text-sm">Back to Home</span>
+      </Link>
+
+      {/* Theme Toggle Button */}
+      <button
+        aria-label="Toggle theme"
+        onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+        className="absolute top-6 right-6 lg:right-8 z-50 p-2 rounded-full bg-background/50 lg:bg-black/20 hover:bg-background/80 lg:hover:bg-black/40 backdrop-blur-md border border-border lg:border-white/10 text-foreground/80 hover:text-foreground lg:text-white/80 lg:hover:text-white transition-colors"
+      >
+        {mounted && (resolvedTheme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />)}
+      </button>
+
+      {/* Left side: Hero Element */}
+      <div className="hidden lg:flex relative w-1/2 bg-[#0a0a0a] flex-col items-start justify-center overflow-hidden">
+        {/* Background Image Layer */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <Image
+            src="/addis2.webp"
+            alt="Addis Ababa Cityscape"
+            fill
+            className="object-cover object-right opacity-80"
+            priority
+          />
+          {/* Gradients for Blending Image into Background */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-[#0a0a0a]/80" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a]/40 via-transparent to-[#0a0a0a]/40" />
+          <div className="absolute inset-0 bg-black/40" />
         </div>
 
-        <div className="rounded-xl border bg-card p-8 shadow-sm">
+        {/* Central Glow/Halo Layer */}
+        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none">
+          <div
+            className="w-[600px] h-[600px] rounded-full blur-[120px] bg-[radial-gradient(circle,_rgba(233,180,73,0.3)_0%,_rgba(74,123,167,0.2)_40%,_transparent_70%)] opacity-80"
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-20 flex flex-col items-start justify-center px-12 xl:px-20 w-full overflow-visible -mt-20">
+          <div className="flex flex-col items-start leading-[1.1] tracking-tight font-extrabold w-full">
+            <span className="text-5xl lg:text-6xl xl:text-7xl text-white mt-0 transition-all duration-500 hover:text-white/80">
+              Where
+            </span>
+            <span className="text-5xl lg:text-6xl xl:text-7xl text-white mt-2 transition-all duration-500 hover:text-white/80">
+              Vision Meets
+            </span>
+            <div className="flex items-center mt-2 ml-0 w-full">
+              <span className="text-5xl lg:text-6xl xl:text-7xl text-transparent bg-clip-text bg-gradient-to-r from-[#7abce8] to-[#e9b449]">
+                Capital
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right side: Form */}
+      <div className="flex flex-1 flex-col justify-center px-4 pt-20 pb-8 sm:px-6 lg:pt-8 lg:pb-8 lg:px-20 xl:px-24">
+        <div className="mx-auto w-full max-w-sm lg:w-[400px]">
+          {/* Logo */}
+          <div className="mb-6 flex justify-center">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity flex-shrink-0">
+              <Image src="/logo.webp" alt="Ascend Finance & Advisory" width={64} height={64} />
+              <div className="text-left">
+                <p className="font-serif font-bold text-foreground text-2xl">Ascend</p>
+                <p className="text-sm font-medium text-[#e9b449]">Finance & Advisory</p>
+              </div>
+            </Link>
+          </div>
+
+          <div className="mb-6 text-center">
+            <h1 className="font-serif text-4xl font-extrabold text-foreground tracking-tight">Sign Up</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Create an account to explore pitch decks.</p>
+          </div>
+
           {/* Display general form error if any */}
           {formError && (
             <Alert variant="destructive" className="mb-6">
@@ -156,10 +223,10 @@ export default function SignupPage() {
               <AlertDescription>{formError}</AlertDescription>
             </Alert>
           )}
-          
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Name Field */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="name" className={fieldErrors.name ? "text-destructive" : ""}>
                 Full Name
               </Label>
@@ -170,12 +237,12 @@ export default function SignupPage() {
                 value={name}
                 onChange={handleNameChange}
                 placeholder="Jane Doe"
-                className={fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={`h-11 ${fieldErrors.name ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 aria-invalid={!!fieldErrors.name}
                 aria-describedby={fieldErrors.name ? "name-error" : undefined}
               />
               {fieldErrors.name && (
-                <p id="name-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <p id="name-error" className="text-xs text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {fieldErrors.name}
                 </p>
@@ -183,7 +250,7 @@ export default function SignupPage() {
             </div>
 
             {/* Email Field */}
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="email" className={fieldErrors.email ? "text-destructive" : ""}>
                 Email
               </Label>
@@ -194,20 +261,20 @@ export default function SignupPage() {
                 value={email}
                 onChange={handleEmailChange}
                 placeholder="investor@example.com"
-                className={fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}
+                className={`h-11 ${fieldErrors.email ? "border-destructive focus-visible:ring-destructive" : ""}`}
                 aria-invalid={!!fieldErrors.email}
                 aria-describedby={fieldErrors.email ? "email-error" : undefined}
               />
               {fieldErrors.email && (
-                <p id="email-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <p id="email-error" className="text-xs text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {fieldErrors.email}
                 </p>
               )}
             </div>
 
-            {/* Password Field - FIXED with proper error handling */}
-            <div className="flex flex-col gap-2">
+            {/* Password Field */}
+            <div className="flex flex-col gap-1.5">
               <Label htmlFor="password" className={fieldErrors.password ? "text-destructive" : ""}>
                 Password
               </Label>
@@ -219,7 +286,7 @@ export default function SignupPage() {
                   value={password}
                   onChange={handlePasswordChange}
                   placeholder="At least 8 characters"
-                  className={`pr-10 ${fieldErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  className={`pr-10 h-11 ${fieldErrors.password ? "border-destructive focus-visible:ring-destructive" : ""}`}
                   aria-invalid={!!fieldErrors.password}
                   aria-describedby={fieldErrors.password ? "password-error" : undefined}
                 />
@@ -229,23 +296,17 @@ export default function SignupPage() {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
-              {/* Password error message - this will now show properly */}
               {fieldErrors.password && (
-                <p id="password-error" className="text-xs text-destructive mt-1 flex items-center gap-1">
+                <p id="password-error" className="text-xs text-destructive flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {fieldErrors.password}
                 </p>
               )}
-              {/* Password hint */}
               {!fieldErrors.password && password.length > 0 && password.length < 8 && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+                <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   Password must be at least 8 characters
                 </p>
@@ -256,30 +317,30 @@ export default function SignupPage() {
               type="submit"
               size="lg"
               disabled={isLoading}
-              className="font-serif font-semibold"
+              className="font-serif font-semibold h-11 mt-1 bg-gradient-to-r from-[#5b8ab5] to-[#e9b449] text-white rounded-full hover:shadow-lg hover:shadow-[#e9b449]/50 transition-all duration-300 transform hover:scale-[1.03] border-0 hover:text-white"
             >
-              {isLoading ? "Creating account..." : "Sign Up"}
+              {isLoading ? "Creating account..." : "Sign Up with Email"}
             </Button>
           </form>
-          
+
           <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border"></div>
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-card px-2 text-muted-foreground">Or sign up with</span>
+                <span className="bg-background px-2 text-muted-foreground">Or sign up with</span>
               </div>
             </div>
-            
-            <div className="mt-4 grid grid-cols-1 gap-2">
+
+            <div className="mt-5 flex flex-col gap-3">
               <Button
                 variant="outline"
                 type="button"
                 onClick={() => handleOAuthSignup('google')}
-                className="font-serif"
+                className="font-serif h-11 hover:bg-transparent hover:text-foreground"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -299,14 +360,14 @@ export default function SignupPage() {
                 </svg>
                 Sign up with Google
               </Button>
-              
+
               <Button
                 variant="outline"
                 type="button"
                 onClick={() => handleOAuthSignup('microsoft')}
-                className="font-serif"
+                className="font-serif h-11 hover:bg-transparent hover:text-foreground"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <svg className="mr-3 h-5 w-5" viewBox="0 0 24 24">
                   <path fill="#f25022" d="M11.4 11.4H2.6V2.6h8.8v8.8z"/>
                   <path fill="#7fba00" d="M21.4 11.4h-8.8V2.6h8.8v8.8z"/>
                   <path fill="#00a4ef" d="M11.4 21.4H2.6v-8.8h8.8v8.8z"/>
@@ -316,19 +377,30 @@ export default function SignupPage() {
               </Button>
             </div>
           </div>
-        </div>
 
-        <div className="mt-6 space-y-2 text-center text-sm text-muted-foreground">
-          <p>
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Sign in
+          <div className="mt-6 text-center flex flex-col gap-2">
+            <p className="text-sm text-muted-foreground">
+              Already have an account? <a href="#" onClick={(e) => {
+                e.preventDefault();
+                const params = new URLSearchParams(window.location.search);
+                const redirect = params.get('redirect');
+                window.location.href = redirect ? `/login?redirect=${redirect}` : "/login";
+              }} className="text-primary font-medium hover:underline">Sign in</a>
+            </p>
+          </div>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground">
+            By continuing, you agree to Ascend Accounting and Advisory's{" "}
+            <Link href="https://www.ascendadvisoryet.com/legal#terms-of-use" className="font-semibold hover:text-primary hover:underline transition-colors" target="_blank" rel="noopener noreferrer">
+              Terms of use
             </Link>
-          </p>
-          <p className="text-xs">
-            By creating an account, you agree to our{" "}
-            <Link href="/terms" className="text-primary hover:underline">
-              Terms &amp; Conditions
+            ,{" "}
+            <Link href="/terms" className="font-semibold hover:text-primary hover:underline transition-colors">
+              Conditions
+            </Link>{" "}
+            and{" "}
+            <Link href="https://www.ascendadvisoryet.com/legal#privacy-policy" className="font-semibold hover:text-primary hover:underline transition-colors" target="_blank" rel="noopener noreferrer">
+              Privacy policy
             </Link>
             .
           </p>

@@ -31,6 +31,9 @@ Route::middleware('throttle:api')->group(function () {
     })->middleware('auth:sanctum');
 
     Route::post('/otp/send', [OtpController::class, 'send'])->middleware('throttle:login');
+    Route::post('/verify-otp', [RegistrationController::class, 'verifyRegistrationOtp'])->middleware('throttle:login');
+    Route::post('/forgot-password/send-otp', [OtpController::class, 'sendForgotPasswordOtp'])->middleware('throttle:login');
+    Route::post('/forgot-password/verify-otp', [OtpController::class, 'verifyForgotPasswordOtp'])->middleware('throttle:login');
 
     Route::apiResource('users', UserController::class);
     Route::apiResource('founders', FounderController::class)->middleware('auth:sanctum');
