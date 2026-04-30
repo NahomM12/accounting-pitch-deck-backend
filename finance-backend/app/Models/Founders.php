@@ -14,10 +14,10 @@ class Founders extends Model
         'company_name',
         'sector',
         'location',
-        'funding_stage',//enum: pre-seed, seed, series A, series B, series C, IPO
+        'operational_stage',//enum: pre-seed, seed, series A, series B, series C, IPO
         'valuation',//enum: pre-seed, seed, series A, series B, series C, IPO
         'years_of_establishment',
-        'funding_amount',
+        'investment_size',
         'description',
         'file_path',
         'status',

@@ -13,17 +13,25 @@ import { useAuth } from "@/lib/auth-context"
 import type { Appointment, AppointmentSlot } from "@/lib/types"
 import { bookAppointmentAt, getAppointmentSlots, getMyAppointments } from "@/lib/api"
 import { toast } from "sonner"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { cn } from "@/lib/utils"
 import { 
   format, 
-  addWeeks, 
-  subWeeks, 
-  startOfWeek, 
-  endOfWeek, 
-  eachDayOfInterval,
   isSameDay,
   parseISO,
-  isWithinInterval
+  isAfter,
+  startOfDay
 } from "date-fns"
+import { Calendar } from "@/components/ui/calendar"
 
 export default function InvestorAppointmentsPage() {
   const { user } = useAuth()
@@ -31,7 +39,8 @@ export default function InvestorAppointmentsPage() {
   const [mine, setMine] = useState<Appointment[]>([])
   const [loading, setLoading] = useState(true)
   const [bookingTime, setBookingTime] = useState<string | null>(null)
-  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [confirmTime, setConfirmTime] = useState<string | null>(null)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
 
   useEffect(() => {
     async function load() {
@@ -47,7 +56,9 @@ export default function InvestorAppointmentsPage() {
         ])
         setAvailable(slots)
         setMine(my)
-      } catch {
+      } catch (error) {
+        console.error('Failed to load appointments:', error)
+        toast.error('Failed to load appointment slots. Please try again.')
         setAvailable([])
         setMine([])
       } finally {
@@ -57,80 +68,32 @@ export default function InvestorAppointmentsPage() {
     load()
   }, [user])
 
-  // Get the days for the current week
-  const weekDays = useMemo(() => {
-    const start = currentWeekStart
-    const end = endOfWeek(currentWeekStart, { weekStartsOn: 1 })
-    return eachDayOfInterval({ start, end })
-  }, [currentWeekStart])
-
-  // Filter available slots for the current week
-  const availableThisWeek = useMemo(() => {
-    return available.filter(slot => {
-      const slotDate = parseISO(slot.scheduled_at)
-      return isWithinInterval(slotDate, {
-        start: weekDays[0],
-        end: weekDays[6]
-      })
-    })
-  }, [available, weekDays])
-
-  // Group slots by day for the current week
-  const groupedByDay = useMemo(() => {
-    const map = new Map<string, AppointmentSlot[]>()
-    
-    // Initialize all days of the week with empty arrays
-    weekDays.forEach(day => {
-      const key = format(day, 'yyyy-MM-dd')
-      map.set(key, [])
-    })
-    
-    // Populate with available slots
-    for (const slot of availableThisWeek) {
+  // Available dates (unique days that have at least one slot)
+  const availableDates = useMemo(() => {
+    const dates = new Set<string>()
+    available.forEach(slot => {
       const date = parseISO(slot.scheduled_at)
-      const key = format(date, 'yyyy-MM-dd')
-      if (map.has(key)) {
-        map.get(key)!.push(slot)
+      if (isAfter(date, startOfDay(new Date())) || isSameDay(date, new Date())) {
+        dates.add(format(date, 'yyyy-MM-dd'))
       }
-    }
-    
-    // Sort slots within each day
-    for (const [, slots] of map) {
-      slots.sort(
-        (a, b) =>
-          parseISO(a.scheduled_at).getTime() -
-          parseISO(b.scheduled_at).getTime(),
-      )
-    }
-    
-    return Array.from(map.entries())
-  }, [availableThisWeek, weekDays])
+    })
+    return Array.from(dates).map(d => parseISO(d))
+  }, [available])
 
-  // Week navigation
-  const goToPreviousWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1))
-  }
-
-  const goToNextWeek = () => {
-    setCurrentWeekStart(addWeeks(currentWeekStart, 1))
-  }
-
-  const goToCurrentWeek = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))
-  }
-
-  // Week label
-  const weekLabel = useMemo(() => {
-    const start = weekDays[0]
-    const end = weekDays[6]
-    return `${format(start, 'MMM d')} - ${format(end, 'MMM d, yyyy')}`
-  }, [weekDays])
+  // Get slots for the selected date
+  const slotsForSelectedDate = useMemo(() => {
+    if (!selectedDate) return []
+    return available
+      .filter(slot => isSameDay(parseISO(slot.scheduled_at), selectedDate))
+      .sort((a, b) => parseISO(a.scheduled_at).getTime() - parseISO(b.scheduled_at).getTime())
+  }, [available, selectedDate])
 
   async function handleBook(time: string) {
     if (!user) {
       toast.error("Please log in as an investor to book.")
       return
     }
+    setConfirmTime(null)
     setBookingTime(time)
     try {
       const appt = await bookAppointmentAt(time)
@@ -152,7 +115,7 @@ export default function InvestorAppointmentsPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-8 py-8">
+    <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 pt-32 pb-8">
       <section className="space-y-2">
         <h1 className="font-serif text-3xl font-extrabold tracking-tight text-foreground">
           Schedule an Appointment
@@ -196,108 +159,76 @@ export default function InvestorAppointmentsPage() {
               <CalendarDays className="size-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {/* Week Slider */}
-              <div className="mb-6 flex items-center justify-between">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={goToPreviousWeek}
-                  className="h-8 w-8"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={goToCurrentWeek}
-                    className="text-xs"
-                  >
-                    Today
-                  </Button>
-                  <span className="text-sm font-medium">
-                    {weekLabel}
-                  </span>
+              <div className="flex flex-col md:flex-row gap-8">
+                {/* Calendar Side */}
+                <div className="flex-1 flex justify-center md:justify-start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    className="rounded-md border bg-card/50"
+                    disabled={(date) => isAfter(startOfDay(new Date()), date)}
+                    modifiers={{
+                      available: availableDates
+                    }}
+                    modifiersStyles={{
+                      available: { 
+                        fontWeight: 'bold', 
+                        color: 'hsl(var(--primary))',
+                        textDecoration: 'underline',
+                        textUnderlineOffset: '4px'
+                      }
+                    }}
+                  />
                 </div>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={goToNextWeek}
-                  className="h-8 w-8"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+
+                {/* Slots Side */}
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold mb-4 text-foreground">
+                    {selectedDate ? format(selectedDate, 'EEEE, MMMM d') : "Select a date"}
+                  </h3>
+                  
+                  {slotsForSelectedDate.length === 0 ? (
+                    <div className="rounded-lg border border-dashed p-8 text-center bg-white/5">
+                      <p className="text-xs text-muted-foreground">
+                        No time slots available for this date.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {slotsForSelectedDate.map((slot) => {
+                        const time = parseISO(slot.scheduled_at)
+                        const label = format(time, 'h:mm a')
+                        return (
+                          <Button
+                            key={slot.scheduled_at}
+                            variant="outline"
+                            className={cn(
+                              "font-serif text-xs transition-all hover:bg-primary hover:text-white",
+                              bookingTime === slot.scheduled_at && "opacity-50 pointer-events-none"
+                            )}
+                            onClick={() => setConfirmTime(slot.scheduled_at)}
+                          >
+                            {bookingTime === slot.scheduled_at ? (
+                              <>
+                                <Loader2 className="mr-1 size-3 animate-spin" />
+                                Booking...
+                              </>
+                            ) : (
+                              label
+                            )}
+                          </Button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest">
+                    <span className="w-2 h-2 rounded-full bg-primary" />
+                    Available Dates Highlighted
+                  </div>
+                </div>
               </div>
-
-              {/* Available Slots by Day */}
-              {availableThisWeek.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No open time slots this week. Please check another week or come back later.
-                </p>
-              ) : (
-                <div className="flex flex-col gap-4">
-                  {groupedByDay.map(([day, slots]) => {
-                    if (slots.length === 0) return null
-                    
-                    const date = parseISO(day)
-                    const isToday = isSameDay(date, new Date())
-                    
-                    return (
-                      <div key={day} className="rounded-lg border p-3">
-                        <div className="flex items-center gap-2 mb-2">
-                          <p className={`text-xs font-semibold ${isToday ? 'text-primary' : 'text-muted-foreground'}`}>
-                            {format(date, 'EEEE, MMMM d')}
-                            {isToday && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Today</span>}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {slots.map((slot) => {
-                            const time = parseISO(slot.scheduled_at)
-                            const label = format(time, 'h:mm a')
-                            return (
-                              <Button
-                                key={slot.scheduled_at}
-                                variant="outline"
-                                size="sm"
-                                className="font-serif text-xs"
-                                disabled={bookingTime === slot.scheduled_at}
-                                onClick={() => handleBook(slot.scheduled_at)}
-                              >
-                                {bookingTime === slot.scheduled_at ? (
-                                  <>
-                                    <Loader2 className="mr-1 size-3 animate-spin" />
-                                    Booking...
-                                  </>
-                                ) : (
-                                  label
-                                )}
-                              </Button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Week Navigation Hint */}
-              {available.length > 0 && availableThisWeek.length === 0 && (
-                <div className="mt-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    No slots available this week. 
-                    {available.length > 0 && (
-                      <Button
-                        variant="link"
-                        className="text-xs px-1 h-auto"
-                        onClick={goToNextWeek}
-                      >
-                        Check next week
-                      </Button>
-                    )}
-                  </p>
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -343,6 +274,26 @@ export default function InvestorAppointmentsPage() {
           </Card>
         </div>
       )}
+
+      <AlertDialog open={!!confirmTime} onOpenChange={(open) => !open && setConfirmTime(null)}>
+        <AlertDialogContent className="border-white/10 dark:bg-[#1A1A1A]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground">Confirm Appointment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to schedule this appointment?
+              {confirmTime && (
+                <span className="block mt-2 font-medium text-foreground">
+                  {format(parseISO(confirmTime), 'EEEE, MMMM d, yyyy • h:mm a')}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 hover:bg-white/10 text-foreground">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => confirmTime && handleBook(confirmTime)}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

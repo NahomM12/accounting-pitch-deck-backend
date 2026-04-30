@@ -12,8 +12,8 @@ import type {
 } from "./types"
 
 export const API_BASE_URL =
-process.env.NEXT_PUBLIC_API_URL || "http://finance-backends.test/api"
-//process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
+process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
+//process.env.NEXT_PUBLIC_API_URL || "http://finance-backend.test/api"
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/?$/, "")
 }
@@ -125,7 +125,6 @@ export async function verifyForgotPasswordOtp(data: {
     body: JSON.stringify(data),
   })
 }
-
 // Founders
 export async function getFounders(filters?: FounderFilters): Promise<Founder[]> {
   const params = new URLSearchParams()
@@ -340,7 +339,13 @@ export async function logout(): Promise<void> {
 export async function deleteUser(id: number): Promise<void> {
   return request<void>(`/users/${id}`, { method: "DELETE" })
 }
-
+ 
+/**
+ * Get thumbnail URL for a pitch deck (uses API endpoint, no symlink needed)
+ */
+export function getThumbnailUrl(pitchDeckId: number): string {
+    return `${API_BASE_URL}/thumbnails/${pitchDeckId}`
+}
 export async function previewPitchDeckFile(id: number): Promise<{ blob: Blob; contentType: string | null; fileName: string }> {
   const token = getToken()
   const headers: HeadersInit = {

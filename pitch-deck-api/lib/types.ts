@@ -66,10 +66,10 @@ export interface Founder {
   company_name: string
   sector: string
   location: string
-  funding_stage: string
+  operational_stage: string
   valuation: string
-  years_of_establishment: number
-  funding_amount: number
+  years_of_establishment: string
+  investment_size: number
   description: string
   file_path: string | null
   status: string
@@ -109,9 +109,9 @@ export interface FounderFilters {
   company_name?: string
   sector?: string
   location?: string
-  funding_stage?: string
-  min_funding_amount?: string
-  max_funding_amount?: string
+  operational_stage?: string
+  min_investment_size?: string
+  max_investment_size?: string
   status?: string
   number_of_employees?: string
   search?: string
@@ -128,13 +128,23 @@ export const LOCATIONS = [
   "mekele",
 ] as const
 
-export const FUNDING_STAGES = [
-  "pre-seed",
-  "seed",
-  "series A",
-  "series B",
-  "series C",
-  "IPO",
+export const SECTORS = [
+  "Agriculture",
+  "Manufacturing",
+  "Finance",
+  "Healthcare",
+  "Education",
+  "Energy",
+  "Technology",
+  "Transportation",
+  "Tourism"
+] as const
+
+export const OPERATIONAL_STAGES = [
+  "pre-operational",
+  "early-operations",
+  "revenue-generating",
+  "profitable/cash-flow positive"
 ] as const
 
 export const VALUATION_STAGES = [
@@ -143,7 +153,7 @@ export const VALUATION_STAGES = [
   "series A 5M$ - 10M$",
   "series B 10M$ - 50M$",
   "series C 50M$ - 100M$",
-  "IPO 100M$+",
+  "IPO 100M$+"
 ] as const
 
 export const EMPLOYEE_RANGES = [

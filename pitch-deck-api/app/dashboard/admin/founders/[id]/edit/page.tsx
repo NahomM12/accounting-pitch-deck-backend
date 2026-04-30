@@ -19,10 +19,11 @@ import { getFounder, updateFounder } from "@/lib/api"
 import type { Founder } from "@/lib/types"
 import {
   LOCATIONS,
-  FUNDING_STAGES,
+  OPERATIONAL_STAGES,
   EMPLOYEE_RANGES,
   VALUATION_STAGES,
   FOUNDER_STATUSES,
+  SECTORS,
 } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -39,13 +40,13 @@ export default function EditFounderPage({
   const [companyName, setCompanyName] = useState("")
   const [sector, setSector] = useState("")
   const [location, setLocation] = useState("")
-  const [fundingStage, setFundingStage] = useState("")
-  const [valuation, setValuation] = useState("")
+  const [operationalStage, setOperationalStage] = useState("")
+  const [investmentSize, setInvestmentSize] = useState("")
   const [numberOfEmployees, setNumberOfEmployees] = useState("")
   const [yearsOfEstablishment, setYearsOfEstablishment] = useState("")
-  const [fundingAmount, setFundingAmount] = useState("")
   const [description, setDescription] = useState("")
   const [status, setStatus] = useState("")
+  const [valuation, setValuation] = useState("")
 
   useEffect(() => {
     async function fetch() {
@@ -55,21 +56,21 @@ export default function EditFounderPage({
         setCompanyName(data.company_name)
         setSector(data.sector ?? "")
         setLocation(data.location ?? "")
-        setFundingStage(data.funding_stage ?? "")
-        setValuation(data.valuation ?? "")
+        setOperationalStage(data.operational_stage ?? "")
+        setInvestmentSize(
+          data.investment_size !== null && data.investment_size !== undefined
+            ? String(data.investment_size)
+            : ""
+        )
         setNumberOfEmployees(data.number_of_employees ?? "")
         setYearsOfEstablishment(
           data.years_of_establishment
             ? String(data.years_of_establishment)
             : ""
         )
-        setFundingAmount(
-          data.funding_amount !== null && data.funding_amount !== undefined
-            ? String(data.funding_amount)
-            : ""
-        )
         setDescription(data.description ?? "")
         setStatus(data.status ?? "")
+        setValuation(data.valuation ?? "")
       } catch {
         setFounder(null)
       } finally {
@@ -88,12 +89,12 @@ export default function EditFounderPage({
         company_name: companyName,
         sector,
         location,
-        funding_stage: fundingStage,
-        valuation,
-        years_of_establishment: yearsOfEstablishment || null,
-        funding_amount: fundingAmount || null,
-        description,
+        operational_stage: operationalStage,
+        investment_size: investmentSize || null,
         number_of_employees: numberOfEmployees,
+        years_of_establishment: yearsOfEstablishment || null,
+        description,
+        valuation,
         status,
       })
       toast.success("Founder updated successfully!")
@@ -165,13 +166,21 @@ export default function EditFounderPage({
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="sector">Sector</Label>
-              <Input
-                id="sector"
-                required
+              <Select
                 value={sector}
-                onChange={(e) => setSector(e.target.value)}
-                placeholder="Fintech"
-              />
+                onValueChange={setSector}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select sector" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECTORS.map((sector) => (
+                    <SelectItem key={sector} value={sector}>
+                      {sector}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -195,18 +204,18 @@ export default function EditFounderPage({
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="funding_stage">Funding Stage</Label>
+              <Label htmlFor="operational_stage">Operational Stage</Label>
               <Select
-                value={fundingStage}
-                onValueChange={setFundingStage}
+                value={operationalStage}
+                onValueChange={setOperationalStage}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
-                  {FUNDING_STAGES.map((stage) => (
+                  {OPERATIONAL_STAGES.map((stage) => (
                     <SelectItem key={stage} value={stage}>
-                      <span className="capitalize">{stage}</span>
+                      <span className="capitalize">{stage.replace(/-/g, ' ')}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -267,12 +276,12 @@ export default function EditFounderPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="funding_amount">Funding Amount ($)</Label>
+              <Label htmlFor="investment_size">Investment Size ($)</Label>
               <Input
-                id="funding_amount"
+                id="investment_size"
                 type="number"
-                value={fundingAmount}
-                onChange={(e) => setFundingAmount(e.target.value)}
+                value={investmentSize}
+                onChange={(e) => setInvestmentSize(e.target.value)}
                 placeholder="500000"
                 min={0}
               />

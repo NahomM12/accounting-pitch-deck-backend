@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft, Upload } from "lucide-react"
@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { createFounder } from "@/lib/api"
-import { LOCATIONS, FUNDING_STAGES, EMPLOYEE_RANGES, VALUATION_STAGES } from "@/lib/types"
+import { LOCATIONS, OPERATIONAL_STAGES, EMPLOYEE_RANGES, VALUATION_STAGES, SECTORS } from "@/lib/types"
 import { toast } from "sonner"
 
 export default function CreateFounderPage() {
@@ -85,12 +85,18 @@ export default function CreateFounderPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="sector">Sector</Label>
-              <Input
-                id="sector"
-                name="sector"
-                required
-                placeholder="Fintech"
-              />
+              <Select name="sector" required>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select sector" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SECTORS.map((sector) => (
+                    <SelectItem key={sector} value={sector}>
+                      {sector}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -111,15 +117,15 @@ export default function CreateFounderPage() {
               </Select>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="funding_stage">Funding Stage</Label>
-              <Select name="funding_stage" required>
+              <Label htmlFor="operational_stage">Operational Stage</Label>
+              <Select name="operational_stage" required>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select stage" />
                 </SelectTrigger>
                 <SelectContent>
-                  {FUNDING_STAGES.map((stage) => (
+                  {OPERATIONAL_STAGES.map((stage) => (
                     <SelectItem key={stage} value={stage}>
-                      <span className="capitalize">{stage}</span>
+                      <span className="capitalize">{stage.replace(/-/g, ' ')}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -174,10 +180,10 @@ export default function CreateFounderPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="funding_amount">Funding Amount ($)</Label>
+              <Label htmlFor="investment_size">Investment Size ($)</Label>
               <Input
-                id="funding_amount"
-                name="funding_amount"
+                id="investment_size"
+                name="investment_size"
                 type="number"
                 required
                 placeholder="500000"
