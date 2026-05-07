@@ -12,6 +12,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\OtpMail;
 
 class RegistrationController extends Controller
 {
@@ -117,10 +119,44 @@ class RegistrationController extends Controller
             'password' => $password,
         ], now()->addMinutes($expiresInMinutes));
 
-        Mail::to($email)->send(new \App\Mail\OtpMail($otp, $expiresInMinutes));
+        Mail::to($email)->send(new OtpMail($otp, $expiresInMinutes));
 
         return response()->json([
             'message' => 'OTP sent to your email address',
+        ], 200);
+    }
+
+    public function resendRegistrationOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|string|email',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $email = $request->input('email');
+        $dataKey = 'registration_data:' . $email;
+        $otpKey = 'registration_otp:' . $email;
+
+        $registrationData = Cache::get($dataKey);
+
+        if (!$registrationData) {
+            return response()->json(['error' => 'Registration session expired. Please sign up again.'], 422);
+        }
+
+        $otp = (string) random_int(100000, 999999);
+        $expiresInMinutes = 10;
+
+        Cache::put($otpKey, $otp, now()->addMinutes($expiresInMinutes));
+        // Refresh registration data TTL as well
+        Cache::put($dataKey, $registrationData, now()->addMinutes($expiresInMinutes));
+
+        Mail::to($email)->send(new OtpMail($otp, $expiresInMinutes));
+
+        return response()->json([
+            'message' => 'New OTP sent to your email address',
         ], 200);
     }
 

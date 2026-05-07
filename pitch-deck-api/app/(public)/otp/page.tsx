@@ -8,7 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { API_BASE_URL, verifyRegistrationOtp, verifyForgotPasswordOtp } from "@/lib/api"
+import { 
+  API_BASE_URL, 
+  verifyRegistrationOtp, 
+  resendRegistrationOtp,
+  sendForgotPasswordOtp 
+} from "@/lib/api"
 
 export default function OtpPage() {
   const [code, setCode] = useState("")
@@ -27,25 +32,32 @@ export default function OtpPage() {
 
     try {
       setIsLoading(true)
-      const res = await fetch(`${API_BASE_URL}/otp/send`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email }),
-      })
+      
+      if (purpose === "register") {
+        await resendRegistrationOtp(email)
+      } else if (purpose === "reset") {
+        await sendForgotPasswordOtp(email)
+      } else {
+        // Generic fallback for existing users
+        const res = await fetch(`${API_BASE_URL}/otp/send`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        })
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        const message = data.message || data.error || "Failed to resend code"
-        toast.error(message)
-        return
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.message || data.error || "Failed to resend code")
+        }
       }
 
       toast.success("Verification code sent")
     } catch (error) {
-      toast.error("Failed to resend code")
+      const err = error as Error & { data?: { error?: string; message?: string } }
+      toast.error(err.data?.error || err.data?.message || err.message || "Failed to resend code")
     } finally {
       setIsLoading(false)
     }

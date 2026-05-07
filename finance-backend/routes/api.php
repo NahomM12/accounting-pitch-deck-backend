@@ -20,6 +20,7 @@ Route::middleware('throttle:api')->group(function () {
     Route::post('/login', [RegistrationController::class, 'login'])->middleware('throttle:login');
     Route::post('/logout', [RegistrationController::class, 'logout'])->middleware('auth:sanctum');
     Route::post('/investors/register', [RegistrationController::class, 'investorRegister'])->middleware('throttle:login');
+    Route::post('/investors/resend-otp', [RegistrationController::class, 'resendRegistrationOtp'])->middleware('throttle:login');
 
     // OAuth Routes
     Route::get('/oauth/{provider}/redirect', [RegistrationController::class, 'redirectToProvider']);

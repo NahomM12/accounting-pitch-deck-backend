@@ -107,6 +107,13 @@ export async function verifyRegistrationOtp(data: {
   })
 }
 
+export async function resendRegistrationOtp(email: string): Promise<{ message: string }> {
+  return request<{ message: string }>("/investors/resend-otp", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  })
+}
+
 export async function sendForgotPasswordOtp(email: string): Promise<{ message: string }> {
   return request<{ message: string }>("/forgot-password/send-otp", {
     method: "POST",
