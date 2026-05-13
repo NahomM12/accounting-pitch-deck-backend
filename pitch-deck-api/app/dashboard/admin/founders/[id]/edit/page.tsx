@@ -41,7 +41,8 @@ export default function EditFounderPage({
   const [sector, setSector] = useState("")
   const [location, setLocation] = useState("")
   const [operationalStage, setOperationalStage] = useState("")
-  const [investmentSize, setInvestmentSize] = useState("")
+  const [investmentSizeUsd, setInvestmentSizeUsd] = useState("")
+  const [investmentSizeEtb, setInvestmentSizeEtb] = useState("")
   const [numberOfEmployees, setNumberOfEmployees] = useState("")
   const [yearsOfEstablishment, setYearsOfEstablishment] = useState("")
   const [description, setDescription] = useState("")
@@ -57,9 +58,14 @@ export default function EditFounderPage({
         setSector(data.sector ?? "")
         setLocation(data.location ?? "")
         setOperationalStage(data.operational_stage ?? "")
-        setInvestmentSize(
-          data.investment_size !== null && data.investment_size !== undefined
-            ? String(data.investment_size)
+        setInvestmentSizeUsd(
+          data.investment_size_usd !== null && data.investment_size_usd !== undefined
+            ? String(data.investment_size_usd)
+            : ""
+        )
+        setInvestmentSizeEtb(
+          data.investment_size_etb !== null && data.investment_size_etb !== undefined
+            ? String(data.investment_size_etb)
             : ""
         )
         setNumberOfEmployees(data.number_of_employees ?? "")
@@ -90,7 +96,8 @@ export default function EditFounderPage({
         sector,
         location,
         operational_stage: operationalStage,
-        investment_size: investmentSize || null,
+        investment_size_usd: investmentSizeUsd || null,
+        investment_size_etb: investmentSizeEtb || null,
         number_of_employees: numberOfEmployees,
         years_of_establishment: yearsOfEstablishment || null,
         description,
@@ -276,15 +283,31 @@ export default function EditFounderPage({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="investment_size">Investment Size ($)</Label>
-              <Input
-                id="investment_size"
-                type="number"
-                value={investmentSize}
-                onChange={(e) => setInvestmentSize(e.target.value)}
-                placeholder="500000"
-                min={0}
-              />
+              <Label>Investment Size</Label>
+              <div className="grid gap-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="investment_size_usd" className="text-sm">USD ($)</Label>
+                  <Input
+                    id="investment_size_usd"
+                    type="number"
+                    value={investmentSizeUsd}
+                    onChange={(e) => setInvestmentSizeUsd(e.target.value)}
+                    placeholder="500000"
+                    min={0}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="investment_size_etb" className="text-sm">ETB (Birr)</Label>
+                  <Input
+                    id="investment_size_etb"
+                    type="number"
+                    value={investmentSizeEtb}
+                    onChange={(e) => setInvestmentSizeEtb(e.target.value)}
+                    placeholder="25000000"
+                    min={0}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

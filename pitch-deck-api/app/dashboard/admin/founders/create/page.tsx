@@ -180,15 +180,29 @@ export default function CreateFounderPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="investment_size">Investment Size ($)</Label>
-              <Input
-                id="investment_size"
-                name="investment_size"
-                type="number"
-                required
-                placeholder="500000"
-                min={0}
-              />
+              <Label>Investment Size</Label>
+              <div className="grid gap-2">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="investment_size_usd" className="text-sm">USD ($)</Label>
+                  <Input
+                    id="investment_size_usd"
+                    name="investment_size_usd"
+                    type="number"
+                    placeholder="500000"
+                    min={0}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="investment_size_etb" className="text-sm">ETB (Birr)</Label>
+                  <Input
+                    id="investment_size_etb"
+                    name="investment_size_etb"
+                    type="number"
+                    placeholder="25000000"
+                    min={0}
+                  />
+                </div>
+              </div>
             </div>
           </div>
 

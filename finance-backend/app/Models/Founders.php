@@ -18,6 +18,8 @@ class Founders extends Model
         'valuation',//enum: pre-seed, seed, series A, series B, series C, IPO
         'years_of_establishment',
         'investment_size',
+        'investment_size_usd',
+        'investment_size_etb',
         'description',
         'file_path',
         'status',

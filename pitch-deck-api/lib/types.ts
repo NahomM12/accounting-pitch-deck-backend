@@ -70,6 +70,8 @@ export interface Founder {
   valuation: string
   years_of_establishment: string
   investment_size: number
+  investment_size_usd: number | null
+  investment_size_etb: number | null
   description: string
   file_path: string | null
   status: string
@@ -112,6 +114,7 @@ export interface FounderFilters {
   operational_stage?: string
   min_investment_size?: string
   max_investment_size?: string
+  currency?: string
   status?: string
   number_of_employees?: string
   search?: string
@@ -163,6 +166,11 @@ export const EMPLOYEE_RANGES = [
   "201-500",
   "501-1000",
   "1001+",
+] as const
+
+export const CURRENCIES = [
+  "USD",
+  "ETB"
 ] as const
 
 export const PITCH_DECK_STATUSES = ["draft", "published", "archived"] as const

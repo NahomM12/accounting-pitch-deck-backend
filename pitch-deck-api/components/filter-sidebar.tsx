@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import type { FounderFilters } from "@/lib/types"
-import { LOCATIONS, OPERATIONAL_STAGES, EMPLOYEE_RANGES, SECTORS } from "@/lib/types"
+import { LOCATIONS, OPERATIONAL_STAGES, EMPLOYEE_RANGES, SECTORS, CURRENCIES } from "@/lib/types"
 
 interface FilterSidebarProps {
   filters: FounderFilters
@@ -145,32 +145,48 @@ export function FilterSidebar({ filters, onChange, onReset }: FilterSidebarProps
         <Label className="text-xs font-medium text-muted-foreground">
           Investment Size
         </Label>
+        <Select
+          value={filters.currency || "USD"}
+          onValueChange={(v) => updateFilter("currency", v)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select currency" />
+          </SelectTrigger>
+          <SelectContent>
+            {CURRENCIES.map((currency) => (
+              <SelectItem key={currency} value={currency}>
+                {currency}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <div className="px-1">
           <Slider
             min={0}
-            max={10000000}
-            step={100000}
+            max={filters.currency === "ETB" ? 500000000 : 10000000}
+            step={filters.currency === "ETB" ? 1000000 : 100000}
             value={[
               Number(filters.min_investment_size) || 0,
-              Number(filters.max_investment_size) || 10000000,
+              Number(filters.max_investment_size) || (filters.currency === "ETB" ? 500000000 : 10000000),
             ]}
             onValueChange={([min, max]) => {
               onChange({
                 ...filters,
                 min_investment_size: min > 0 ? String(min) : "",
-                max_investment_size: max < 10000000 ? String(max) : "",
+                max_investment_size: max < (filters.currency === "ETB" ? 500000000 : 10000000) ? String(max) : "",
               })
             }}
           />
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span>
-            ${((Number(filters.min_investment_size) || 0) / 1000000).toFixed(1)}M
+            {filters.currency === "ETB" ? "ETB" : "$"}
+            {((Number(filters.min_investment_size) || 0) / 1000000).toFixed(1)}M
           </span>
           <span>
-            $
+            {filters.currency === "ETB" ? "ETB" : "$"}
             {(
-              (Number(filters.max_investment_size) || 10000000) / 1000000
+              (Number(filters.max_investment_size) || (filters.currency === "ETB" ? 500000000 : 10000000)) / 1000000
             ).toFixed(1)}
             M
           </span>
