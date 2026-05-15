@@ -2,16 +2,22 @@ import Link from "next/link"
 import { FileText, MapPin, Calendar } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { getApiOrigin } from "@/lib/api"
+import { getApiOrigin, trackPitchDeckView } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
 
 export function PitchDeckCard({ deck }: { deck: PitchDeck }) {
+  const handleTrackView = () => {
+    trackPitchDeckView(deck.id).catch(() => {
+      // Silently fail, don't block navigation
+    })
+  }
+
   const thumbnailUrl = deck.thumbnail_path
     ? `${getApiOrigin()}/storage/${deck.thumbnail_path}`
     : null
 
   return (
-    <Link href={`/pitch-decks/${deck.id}`}>
+    <Link href={`/pitch-decks/${deck.id}`} onClick={handleTrackView}>
       <Card className="group overflow-hidden transition-all hover:shadow-lg hover:border-primary/30">
         <div className="aspect-video w-full overflow-hidden bg-muted">
           {thumbnailUrl ? (

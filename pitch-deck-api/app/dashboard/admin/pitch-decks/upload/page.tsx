@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createFounder, createPitchDeck, getFounders, uploadThumbnail } from "@/lib/api"
-import { LOCATIONS, FUNDING_STAGES, EMPLOYEE_RANGES } from "@/lib/types"
+import { LOCATIONS, OPERATIONAL_STAGES, EMPLOYEE_RANGES } from "@/lib/types"
 import type { Founder } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -169,11 +169,11 @@ export default function UploadPitchDeckPage() {
                     </Select>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label>Funding Stage</Label>
-                    <Select name="funding_stage" required>
+                    <Label>Operational Stage</Label>
+                    <Select name="operational_stage" required>
                       <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
-                        {FUNDING_STAGES.map((s) => (
+                        {OPERATIONAL_STAGES.map((s) => (
                           <SelectItem key={s} value={s}><span className="capitalize">{s}</span></SelectItem>
                         ))}
                       </SelectContent>
@@ -186,7 +186,7 @@ export default function UploadPitchDeckPage() {
                     <Select name="valuation" required>
                       <SelectTrigger className="w-full"><SelectValue placeholder="Select" /></SelectTrigger>
                       <SelectContent>
-                        {FUNDING_STAGES.map((s) => (
+                        {OPERATIONAL_STAGES.map((s) => (
                           <SelectItem key={s} value={s}><span className="capitalize">{s}</span></SelectItem>
                         ))}
                       </SelectContent>

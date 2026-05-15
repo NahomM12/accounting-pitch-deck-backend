@@ -53,6 +53,10 @@ class PitchDeck extends Model
     {
         return $this->hasMany(PitchDeckDownload::class);
     }
+    public function views()
+    {
+        return $this->hasMany(PitchDeckView::class);
+    }
     // public function users()
     // {
     //     return $this->belongsToMany(User::class, 'pitch_deck_downloads', 'pitch_deck_id', 'user_id')

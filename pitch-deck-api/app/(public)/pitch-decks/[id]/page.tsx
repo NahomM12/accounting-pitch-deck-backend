@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { StatusBadge } from "@/components/status-badge"
 import { useRouter } from "next/navigation"
-import { getPublicPitchDeck, downloadPitchDeck, getApiOrigin } from "@/lib/api"
+import { getPublicPitchDeck, downloadPitchDeck, getApiOrigin, trackPitchDeckView } from "@/lib/api"
 import type { PitchDeck } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -30,6 +30,7 @@ export default function PitchDeckDetailPage({
   const [deck, setDeck] = useState<PitchDeck | null>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
+  const [viewTracked, setViewTracked] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -37,6 +38,15 @@ export default function PitchDeckDetailPage({
       try {
         const data = await getPublicPitchDeck(Number(id))
         setDeck(data)
+        
+        // Track view once per component mount
+        if (!viewTracked) {
+          trackPitchDeckView(Number(id))
+            .then(() => setViewTracked(true))
+            .catch(err => {
+              console.error("Failed to track view:", err)
+            })
+        }
       } catch {
         setDeck(null)
       } finally {
@@ -44,7 +54,7 @@ export default function PitchDeckDetailPage({
       }
     }
     fetchDeck()
-  }, [id])
+  }, [id, viewTracked])
 
   async function handleDownload() {
     if (!deck) return
@@ -181,7 +191,7 @@ export default function PitchDeckDetailPage({
                 <InfoItem
                   icon={DollarSign}
                   label="Funding Stage"
-                  value={deck.founder.funding_stage}
+                  value={deck.founder.operational_stage}
                   capitalize
                 />
                 <InfoItem
@@ -192,7 +202,7 @@ export default function PitchDeckDetailPage({
                 <InfoItem
                   icon={DollarSign}
                   label="Funding Amount"
-                  value={`$${Number(deck.founder.funding_amount).toLocaleString()}`}
+                  value={`$${Number(deck.founder.investment_size).toLocaleString()}`}
                 />
                 <InfoItem
                   icon={Calendar}

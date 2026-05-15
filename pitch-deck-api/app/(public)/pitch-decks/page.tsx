@@ -14,10 +14,10 @@ const defaultFilters: FounderFilters = {
   search: "",
   sector: "",
   location: "",
-  funding_stage: "",
+  operational_stage: "",
   number_of_employees: "",
-  min_funding_amount: "",
-  max_funding_amount: "",
+  min_investment_size: "",
+  max_investment_size: "",
   sort_by: "created_at",
   sort_direction: "desc",
 }
@@ -55,7 +55,7 @@ export default function PitchDecksPage() {
       if (!matchesTitle && !matchesCompany && !matchesSector) return false
     }
     if (filters.location && deck.founder?.location !== filters.location) return false
-    if (filters.funding_stage && deck.founder?.funding_stage !== filters.funding_stage) return false
+    if (filters.operational_stage && deck.founder?.operational_stage !== filters.operational_stage) return false
     if (filters.sector && !deck.founder?.sector?.toLowerCase().includes(filters.sector.toLowerCase())) return false
     if (filters.number_of_employees && deck.founder?.number_of_employees !== filters.number_of_employees) return false
     return true

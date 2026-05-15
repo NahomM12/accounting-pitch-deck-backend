@@ -12,8 +12,8 @@ import type {
 } from "./types"
 
 export const API_BASE_URL =
-process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
-//process.env.NEXT_PUBLIC_API_URL || "http://finance-backend.test/api"
+//process.env.NEXT_PUBLIC_API_URL || "https://pitchdeck.ascendadvisoryet.com/api"
+process.env.NEXT_PUBLIC_API_URL || "http://finance-backend.test/api"
 export function getApiOrigin(): string {
   return API_BASE_URL.replace(/\/api\/?$/, "")
 }
@@ -186,6 +186,16 @@ export async function getPublicPitchDeck(id: number): Promise<PitchDeck> {
   return request<PitchDeck>(`/public/pitch-decks/${id}`)
 }
 
+export async function trackPitchDeckView(id: number): Promise<void> {
+  return request<void>(`/public/pitch-decks/${id}/track-view`, {
+    method: "POST",
+  })
+}
+
+export async function getAnalytics(): Promise<any> {
+  return request<any>("/admin/analytics")
+}
+
 export async function createPitchDeck(data: FormData): Promise<{ message: string; pitch_deck: PitchDeck; file_url: string }> {
   return request(`/pitch-decks`, {
     method: "POST",
@@ -345,6 +355,13 @@ export async function logout(): Promise<void> {
 
 export async function deleteUser(id: number): Promise<void> {
   return request<void>(`/users/${id}`, { method: "DELETE" })
+}
+
+export async function updateUserStatus(id: number, isActive: boolean): Promise<User> {
+  return request<User>(`/users/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ is_active: isActive }),
+  })
 }
  
 /**

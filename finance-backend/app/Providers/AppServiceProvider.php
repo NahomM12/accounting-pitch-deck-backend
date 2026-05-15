@@ -26,9 +26,6 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         //
-        Route::aliasMiddleware('admin', IsAdmin::class);
-        Route::aliasMiddleware('superadmin', IsSuperAdmin::class);
-        Route::aliasMiddleware('isinvestor', IsInvestor::class);
        
         config([
             'cors' => [
